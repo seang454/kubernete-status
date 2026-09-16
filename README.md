@@ -1,7 +1,7 @@
 # 🚀 The Master Kubernetes Pod Statuses, Errors & Exit Codes Encyclopedia
 
-> **The Definitive, All-Inclusive 360° Troubleshooting Encyclopedia for Kubernetes (v1.20 - v1.31+)**  
-> Covering every known Kubernetes Pod Phase, Container State, Waiting/Terminated Reason, Scheduling Gate, Admission Webhook Rejection, ResourceQuota Constraint, In-Place Resize State, CNI/DNS Network Glitch, Storage/CSI Error, Probe Failure, Lifecycle Hook Error, Kernel Signal, Batch Job Status, and Container Exit Code with **Real-World Scenarios**, **Deep Root Causes**, **Exact Diagnostic Commands**, and **Step-by-Step Fixes**.
+> **The Definitive, 100% Complete Troubleshooting Encyclopedia for Kubernetes (v1.20 - v1.31+)**  
+> Covering every single Kubernetes Pod Phase, Container State, Waiting/Terminated Reason, Scheduling Gate, Admission Webhook Rejection, ResourceQuota Constraint, In-Place Resize State, CNI/DNS Network Glitch, Storage/CSI Error, Probe Failure, Lifecycle Hook Error, Kernel Signal, Workload Controller Deadlock (StatefulSets/Deployments), Autoscaler Failure (HPA/KEDA/Cluster Autoscaler), Disruption Target, and Container Exit Code with **Real-World Scenarios**, **Deep Root Causes**, **Exact Diagnostic Commands**, and **Step-by-Step Fixes**.
 
 ---
 
@@ -93,16 +93,23 @@
   - [11.3 `ServiceEndpointsMissing` (No Pods Match Selector)](#113-serviceendpointsmissing-no-pods-match-selector)
 - [🚪 12. Node Pressure, Eviction, Preemption & Teardown Errors](#-12-node-pressure-eviction-preemption--teardown-errors)
   - [12.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)](#121-evicted-diskpressure-memorypressure-pidpressure)
-  - [12.2 `Evicted` (`DisruptionTarget` / Node Drain)](#122-evicted-disruptiontarget--node-drain)
+  - [12.2 `Evicted` (`DisruptionTarget`: `EvictionByEvictionAPI`, `TerminationByKubelet`, `DeletionByPodGC`)](#122-evicted-disruptiontarget-evictionbyevictionapi-terminationbykubelet-deletionbypodgc)
   - [12.3 `TaintManagerEviction` (`NoExecute` Taint Applied)](#123-taintmanagereviction-noexecute-taint-applied)
   - [12.4 `TerminatedDueToNodeShutdown` (Graceful Node Shutdown)](#124-terminatedduetonodeshutdown-graceful-node-shutdown)
   - [12.5 `Preempted` / `Preempting` (`PriorityClass`)](#125-preempted--preempting-priorityclass)
   - [12.6 `Terminating` (Stuck on Finalizers or Storage Unmount)](#126-terminating-stuck-on-finalizers-or-storage-unmount)
   - [12.7 `GracefulTerminationTimeout` (App Ignored SIGTERM)](#127-gracefulterminationtimeout-app-ignored-sigterm)
   - [12.8 `Unknown` / `NodeLost` / `NodeNotReady`](#128-unknown--nodelost--nodenotready)
-- [🔢 13. Master Container Exit Codes & OS Signals Table](#-13-master-container-exit-codes--os-signals-table)
-- [🗺️ 14. The Ultimate 60-Second Diagnostic Decision Tree](#️-14-the-ultimate-60-second-diagnostic-decision-tree)
-- [📋 15. Master Quick Reference Action Matrix](#-15-master-quick-reference-action-matrix)
+- [🔄 13. Workload Controller Deadlocks & Autoscaler Failures](#-13-workload-controller-deadlocks--autoscaler-failures)
+  - [13.1 `ProgressDeadlineExceeded` (Deployment Rollout Stuck)](#131-progressdeadlineexceeded-deployment-rollout-stuck)
+  - [13.2 `StatefulSetOrdinalDeadlock` (StatefulSet Pod Order Blocked)](#132-statefulsetordinaldeadlock-statefulset-pod-order-blocked)
+  - [13.3 `PodDisruptionBudgetViolation` (`Cannot evict pod: PDB violated`)](#133-poddisruptionbudgetviolation-cannot-evict-pod-pdb-violated)
+  - [13.4 `HPAUnableToComputeMetrics` / `ScalingLimited`](#134-hpaunabletocomputemetrics--scalinglimited)
+  - [13.5 `KEDATriggerError` (External Event Source Down)](#135-kedatriggererror-external-event-source-down)
+  - [13.6 `ClusterAutoscalerScaleUpFailed` (Cloud Quota Reached)](#136-clusterautoscalerscaleupfailed-cloud-quota-reached)
+- [🔢 14. Master Container Exit Codes & OS Signals Table](#-14-master-container-exit-codes--os-signals-table)
+- [🗺️ 15. The Ultimate 60-Second Diagnostic Decision Tree](#️-15-the-ultimate-60-second-diagnostic-decision-tree)
+- [📋 16. Master Quick Reference Action Matrix](#-16-master-quick-reference-action-matrix)
 
 ---
 
@@ -1211,9 +1218,16 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 12.2 `Evicted` (`DisruptionTarget` / Node Drain)
-* **📖 What It Means:** The Pod was terminated because the worker node is being decommissioned or upgraded via `kubectl drain`.
-* 🛠️ **Step-by-Step Fix:** Normal behavior during cluster maintenance. Ensure Deployments have `replicas >= 2` and a `PodDisruptionBudget` (PDB) is defined.
+### 12.2 `Evicted` (`DisruptionTarget`: `EvictionByEvictionAPI`, `TerminationByKubelet`, `DeletionByPodGC`)
+* **📖 What It Means:** In Kubernetes 1.25+, when a Pod is targeted for termination due to cluster lifecycle events, the `DisruptionTarget` condition records the exact sub-reason:
+  - **`EvictionByEvictionAPI`**: Triggered via `kubectl drain` or cluster autoscaler node scale-down.
+  - **`PreemptionByKubeScheduler`**: Preempted to make room for a higher-priority pod.
+  - **`TerminationByKubelet`**: Kubelet evicted the pod due to node resource pressure or graceful shutdown.
+  - **`DeletionByPodGC`**: Orphaned or terminating pod cleaned up by Pod Garbage Collector.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl get pod <pod-name> -o jsonpath='{.status.conditions[?(@.type=="DisruptionTarget")]}'
+  ```
 
 ---
 
@@ -1293,7 +1307,71 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-## 🔢 13. Master Container Exit Codes & OS Signals Table
+## 🔄 13. Workload Controller Deadlocks & Autoscaler Failures
+
+---
+
+### 13.1 `ProgressDeadlineExceeded` (Deployment Rollout Stuck)
+* **📖 What It Means:** A Deployment rollout failed to make progress within `progressDeadlineSeconds` (default 600 seconds / 10 minutes) because new pods are crashing in `CrashLoopBackOff` or stuck in `Pending`.
+* 🎭 **Real-World Scenario:** You deploy a bad container image with a critical syntax error. The ReplicaSet launches 2 new pods that immediately crash. The old pods continue running, and after 10 minutes the Deployment status is marked `ProgressDeadlineExceeded`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl rollout status deployment/<deployment-name>
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Roll back to previous healthy revision:
+    ```bash
+    kubectl rollout undo deployment/<deployment-name>
+    ```
+
+---
+
+### 13.2 `StatefulSetOrdinalDeadlock` (StatefulSet Pod Order Blocked)
+* **📖 What It Means:** By default, StatefulSets use `podManagementPolicy: OrderedReady`, meaning Pod `app-1` will **NEVER** be created or started until Pod `app-0` is fully `Running` and `Ready`. If Pod 0 fails, the entire StatefulSet halts.
+* 🎭 **Real-World Scenario:** In a 3-node MongoDB cluster (`mongo-0`, `mongo-1`, `mongo-2`), `mongo-0` fails to mount its PVC. `mongo-1` and `mongo-2` are never created.
+* 🛠️ **Step-by-Step Fix:**
+  - Fix the underlying issue on Pod 0 (`kubectl describe pod mongo-0`).
+  - Or switch to parallel creation: `podManagementPolicy: Parallel`.
+
+---
+
+### 13.3 `PodDisruptionBudgetViolation` (`Cannot evict pod: PDB violated`)
+* **📖 What It Means:** A node drain (`kubectl drain`) or cluster autoscaler scale-down is rejected by the API server because evicting the Pod would violate its `PodDisruptionBudget` (`minAvailable` / `maxUnavailable`).
+* 🎭 **Real-World Scenario:** You have 2 replicas of Elasticsearch with a PDB requiring `minAvailable: 2`. One replica crashed, leaving only 1 available. When you try to drain the node hosting the healthy replica, `kubectl drain` fails with `Cannot evict pod as it would violate the pod's disruption budget`.
+* 🛠️ **Step-by-Step Fix:**
+  - Bring other replicas up to health before draining.
+  - Or temporarily delete the blocking PDB: `kubectl delete pdb <pdb-name>`.
+
+---
+
+### 13.4 `HPAUnableToComputeMetrics` / `ScalingLimited`
+* **📖 What It Means:** The Horizontal Pod Autoscaler (HPA) cannot calculate target CPU/Memory metrics and refuses to scale up or down because `metrics-server` is down or containers lack `resources.requests`.
+* 🎭 **Real-World Scenario:** You create an HPA targeting `50%` CPU utilization, but in your Deployment YAML you did not define `resources.requests.cpu`. The HPA displays `TARGETS: <unknown>/50%` and never scales.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe hpa <hpa-name>
+  ```
+* 🛠️ **Step-by-Step Fix:** Always configure `resources.requests.cpu` and `resources.requests.memory` on all containers managed by an HPA.
+
+---
+
+### 13.5 `KEDATriggerError` (External Event Source Down)
+* **📖 What It Means:** KEDA (Kubernetes Event-driven Autoscaling) failed to query an external scaler (e.g. RabbitMQ queue depth, Kafka topic lag, AWS SQS) due to authentication or network timeouts.
+* 🛠️ **Step-by-Step Fix:** Inspect KEDA ScaledObject: `kubectl describe scaledobject <name>`.
+
+---
+
+### 13.6 `ClusterAutoscalerScaleUpFailed` (Cloud Quota Reached)
+* **📖 What It Means:** The Cluster Autoscaler tried to add new cloud VM worker nodes to accommodate `Pending` pods, but the cloud provider (AWS/GCP/Azure) rejected the request due to cloud account vCPU quota limits or instance type unavailability.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl get configmap cluster-autoscaler-status -n kube-system -o yaml
+  ```
+* 🛠️ **Step-by-Step Fix:** Request a service quota increase for vCPUs in your cloud provider management console.
+
+---
+
+## 🔢 14. Master Container Exit Codes & OS Signals Table
 
 When inspecting `kubectl describe pod <name>`, inspect the **Last State** section to find the **Exit Code**.
 
@@ -1317,7 +1395,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 
 ---
 
-## 🗺️ 14. The Ultimate 60-Second Diagnostic Decision Tree
+## 🗺️ 15. The Ultimate 60-Second Diagnostic Decision Tree
 
 ```
                                 [ Pod Is Not Healthy ]
@@ -1351,7 +1429,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 
 ---
 
-## 📋 15. Master Quick Reference Action Matrix
+## 📋 16. Master Quick Reference Action Matrix
 
 | When Pod Status Displays... | Immediate Primary Suspect | Exact Diagnostic & Recovery Command |
 | :--- | :--- | :--- |
@@ -1371,6 +1449,8 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 | **`Terminating` (Stuck)** | Blocking Finalizers or unmount hang | `kubectl patch pod <pod> -p '{"metadata":{"finalizers":null}}'` |
 | **`Evicted` (DiskPressure)** | Worker node disk usage > 85% | `kubectl describe node <node>` & prune images |
 | **`CoreDNS CrashLoopBackOff`** | DNS forwarding loop in `/etc/resolv.conf` | Fix nameservers in host `/etc/resolv.conf` |
+| **`ProgressDeadlineExceeded`** | Deployment rollout stuck past 10 mins | `kubectl rollout undo deployment/<name>` |
+| **`PDB Violation`** | Eviction blocked by PodDisruptionBudget | Check healthy replicas before draining |
 
 ---
 *Created with ❤️ for Kubernetes developers, SREs, platform engineers, and DevOps professionals.*
