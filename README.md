@@ -1,727 +1,959 @@
-# 🚀 The Ultimate Kubernetes Pod Statuses, Errors & Exit Codes Guide
+# 🚀 The Master Kubernetes Pod Statuses, Errors & Exit Codes Encyclopedia
 
-> A beginner-friendly, real-world troubleshooting guide covering all Kubernetes Pod lifecycle phases, error states, exit codes, and step-by-step diagnostic fixes.
+> **The Definitive, 360° Beginner-to-Advanced Troubleshooting Guide**  
+> Covering every single Kubernetes Pod Phase, Container State, Scheduling Error, Storage Glitch, Network/DNS Failure, Admission Webhook Rejection, Lifecycle Probe Breakdown, and Exit Code with **Real-World Scenarios**, **Exact Root Causes**, **Inspection Commands**, and **Step-by-Step Fixes**.
 
 ---
 
 ## 📌 Table of Contents
 
-- [🧠 0. Understanding the Pod Lifecycle & States](#-0-understanding-the-pod-lifecycle--states)
-- [🛠️ Diagnostic Toolbox: Essential Debugging Commands](#️-diagnostic-toolbox-essential-debugging-commands)
-- [📑 1. Scheduling & Node Assignment Errors](#-1-scheduling--node-assignment-errors-before-pod-starts)
-- [📦 2. Image & Registry Errors](#-2-image--registry-errors)
-- [⚙️ 3. Configuration & Secret Errors](#️-3-configuration--secret-errors)
-- [💾 4. Storage & Volume Mounting Errors](#-4-storage--volume-mounting-errors)
-- [🔄 5. Init Container Errors](#-5-init-container-errors)
-- [💥 6. Runtime, Crash & Resource Errors](#-6-runtime-crash--resource-errors)
-- [🏥 7. Health Check (Probes) & Network Errors](#-7-health-check-probes--network-errors)
-- [🚪 8. Eviction, Preemption & Teardown Errors](#-8-eviction-preemption--teardown-errors)
-- [🔢 9. Container Exit Codes Reference Table](#-9-container-exit-codes-reference-table)
-- [🗺️ 10. Step-by-Step Troubleshooting Flowchart](#️-10-step-by-step-troubleshooting-flowchart)
+- [🧠 0. Pod Lifecycle Architecture, Phases & Conditions](#-0-pod-lifecycle-architecture-phases--conditions)
+- [🛠️ Diagnostic Master-Kit: 10 Essential Commands](#️-diagnostic-master-kit-10-essential-commands)
+- [📑 1. Scheduling & Node Placement Errors](#-1-scheduling--node-placement-errors-before-pod-starts)
+  - [1.1 `Pending` (Generic Unscheduled)](#11-pending-generic-unscheduled)
+  - [1.2 `FailedScheduling` (Insufficient CPU / RAM / GPU)](#12-failedscheduling-insufficient-cpu--ram--gpu)
+  - [1.3 `MatchNodeSelector` / `NodeAffinity` Failure](#13-matchnodeselector--nodeaffinity-failure)
+  - [1.4 `UntoleratedTaint` (`NoSchedule` / `NoExecute`)](#14-untoleratedtaint-noschedule--noexecute)
+  - [1.5 `PodTopologySpreadFilter` / `AntiAffinity` Conflict](#15-podtopologyspreadfilter--antiaffinity-conflict)
+  - [1.6 `VolumeZoneConflict` (Cross-AZ Disk Attachment)](#16-volumezoneconflict-cross-az-disk-attachment)
+  - [1.7 `MaxPodsExceeded` / `NodeUnschedulable` (`Cordoned`)](#17-maxpodsexceeded--nodeunschedulable-cordoned)
+- [📦 2. Image, OCI Registry & Runtime CRI Errors](#-2-image-oci-registry--runtime-cri-errors)
+  - [2.1 `ErrImagePull`](#21-errimagepull)
+  - [2.2 `ImagePullBackOff`](#22-imagepullbackoff)
+  - [2.3 `InvalidImageName`](#23-invalidimagename)
+  - [2.4 `ErrImageNeverPull`](#24-errimageneverpull)
+  - [2.5 `ImageInspectError`](#25-imageinspecterror)
+  - [2.6 `ImageArchitectureMismatch` (`exec format error`)](#26-imagearchitecturemismatch-exec-format-error)
+  - [2.7 `RegistryUnauthorized` / `401 Unauthorized` / `403 Forbidden`](#27-registryunauthorized--401-unauthorized--403-forbidden)
+  - [2.8 `DockerHubRateLimit` (`HTTP 429 Too Many Requests`)](#28-dockerhubratelimit-http-429-too-many-requests)
+- [⚙️ 3. Container Configuration, Runtime & Security Context Errors](#️-3-container-configuration-runtime--security-context-errors)
+  - [3.1 `CreateContainerConfigError`](#31-createcontainerconfigerror)
+  - [3.2 `CreateContainerError`](#32-createcontainererror)
+  - [3.3 `RunContainerError`](#33-runcontainererror)
+  - [3.4 `RunAsNonRootError` / `MustRunAsNonRoot`](#34-runasnonrooterror--mustrunasnonroot)
+  - [3.5 `ReadOnlyFilesystemError`](#35-readonlyfilesystemerror)
+  - [3.6 `PostStartHookError` & `PreStopHookFailed`](#36-poststarthookerror--prestophookfailed)
+- [💾 4. Storage, CSI Driver & Volume Mounting Errors](#-4-storage-csi-driver--volume-mounting-errors)
+  - [4.1 `ContainerCreating` (Stuck on Volume Attachment)](#41-containercreating-stuck-on-volume-attachment)
+  - [4.2 `FailedMount` & `FailedAttachVolume`](#42-failedmount--failedattachvolume)
+  - [4.3 `PersistentVolumeClaimNotBound` / `ProvisioningFailed`](#43-persistentvolumeclaimnotbound--provisioningfailed)
+  - [4.4 `VolumeSubpathInitializationFailed`](#44-volumesubpathinitializationfailed)
+  - [4.5 `Multi-Attach error for volume` (ReadWriteOnce Conflict)](#45-multi-attach-error-for-volume-readwriteonce-conflict)
+- [🔄 5. Init Container & Modern Sidecar Errors](#-5-init-container--modern-sidecar-errors)
+  - [5.1 `Init:0/N` / `Init:1/N` (Stuck Waiting)](#51-init0n--init1n-stuck-waiting)
+  - [5.2 `Init:CrashLoopBackOff` & `Init:Error`](#52-initcrashloopbackoff--initerror)
+  - [5.3 `Init:ImagePullBackOff`](#53-initimagepullbackoff)
+  - [5.4 `ServiceMeshSidecarNotReady` (Istio/Envoy / Linkerd Proxy Delay)](#54-servicemeshsidecarnotready-istioenvoy--linkerd-proxy-delay)
+- [💥 6. Runtime Crashes, Memory & Resource Starvation](#-6-runtime-crashes-memory--resource-starvation)
+  - [6.1 `Error` (Non-Zero Exit Code)](#61-error-non-zero-exit-code)
+  - [6.2 `CrashLoopBackOff`](#62-crashloopbackoff)
+  - [6.3 `OOMKilled` (Exit Code 137 - Out of Memory)](#63-oomkilled-exit-code-137---out-of-memory)
+  - [6.4 `Completed` (Exit Code 0 on Web Servers)](#64-completed-exit-code-0-on-web-servers)
+  - [6.5 `ContainerStatusUnknown`](#65-containerstatusunknown)
+- [🏥 7. Health Checks (Probes) & Networking/DNS Errors](#-7-health-checks-probes--networkingdns-errors)
+  - [7.1 `Unhealthy` (Liveness Probe Failed)](#71-unhealthy-liveness-probe-failed)
+  - [7.2 `ReadinessProbeFailed` (Traffic Cut Off)](#72-readinessprobefailed-traffic-cut-off)
+  - [7.3 `StartupProbeFailed` (Slow Boot Timeout)](#73-startupprobefailed-slow-boot-timeout)
+  - [7.4 `NetworkNotReady` / `CNINetworkError`](#74-networknotready--cninetworkerror)
+  - [7.5 `CoreDNS CrashLoopBackOff` & DNS Lookup Timeouts](#75-coredns-crashloopbackoff--dns-lookup-timeouts)
+  - [7.6 `AdmissionWebhookDenied` / `WebhookTimeout`](#76-admissionwebhookdenied--webhooktimeout)
+- [🚪 8. Node Pressure, Eviction, Preemption & Teardown Errors](#-8-node-pressure-eviction-preemption--teardown-errors)
+  - [8.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)](#81-evicted-diskpressure-memorypressure-pidpressure)
+  - [8.2 `Preempted` / `Preempting` (`PriorityClass`)](#82-preempted--preempting-priorityclass)
+  - [8.3 `Terminating` (Stuck on Finalizers or Unmount)](#83-terminating-stuck-on-finalizers-or-unmount)
+  - [8.4 `Unknown` / `NodeLost` / `NodeNotReady`](#84-unknown--nodelost--nodenotready)
+- [🔢 9. Master Container Exit Codes & OS Signals Table](#-9-master-container-exit-codes--os-signals-table)
+- [🗺️ 10. The Ultimate 60-Second Troubleshooting Decision Tree](#️-10-the-ultimate-60-second-troubleshooting-decision-tree)
 
 ---
 
-## 🧠 0. Understanding the Pod Lifecycle & States
+## 🧠 0. Pod Lifecycle Architecture, Phases & Conditions
 
-Before diving into errors, it's important to understand the standard Pod lifecycle. A Kubernetes Pod generally goes through these high-level phases:
+### The Pod Lifecycle Pipeline
 
 ```
-[ Pod Created ] 
-       │
-       ▼
- [ Pending ] ──► (Scheduling / Pulling Images / Initializing)
-       │
-       ▼
- [ Running ] ──► (Containers executing & Probes passing)
-       │
-   ┌───┴───────────────┐
-   ▼                   ▼
-[ Succeeded ]      [ Failed ]
-(Jobs finished)    (App crashed / Error)
+[ Pod Object Created via API ]
+              │
+              ▼
+   [ Phase: Pending ] ──► (kube-scheduler assigns a Node)
+              │
+              ▼
+  [ Node Kubelet Takes Over ]
+   ├─► Attach & Mount Storage Volumes (CSI)
+   ├─► Allocate Network & IP Address (CNI)
+   ├─► Pull Container Images (CRI)
+   ├─► Execute Init Containers (Sequence 1..N)
+   └─► Start Main App Containers & Native Sidecars
+              │
+              ▼
+   [ Phase: Running ] ──► (Startup & Readiness Probes Pass)
+              │
+      ┌───────┴───────┐
+      ▼               ▼
+[ Phase: Succeeded ] [ Phase: Failed ]
+(Exit 0 / Jobs)      (Non-zero Exit / Crash)
 ```
 
-### High-Level Pod Phases:
-| Phase | Meaning |
-| :--- | :--- |
-| **`Pending`** | Pod has been accepted by the cluster, but one or more containers are not yet created or running (waiting for scheduling, image download, init containers, or storage). |
-| **`Running`** | Pod is bound to a node and all containers have been created. At least one container is currently running or in the process of starting/restarting. |
-| **`Succeeded`** | All containers in the Pod completed successfully with exit code `0` and will not restart (e.g., completed Batch Jobs or DB migration scripts). |
-| **`Failed`** | All containers in the Pod terminated, and at least one container failed (exited with a non-zero exit code). |
-| **`Unknown`** | The state of the Pod cannot be obtained, usually due to a communication failure between the Master control plane and the Worker Node. |
+### Pod Conditions (Boolean Health Flags)
+Run `kubectl get pod <name> -o yaml` and inspect `status.conditions`:
+* **`PodScheduled` (`True`/`False`):** Has the Scheduler successfully assigned the Pod to a node?
+* **`Initialized` (`True`/`False`):** Have all Init Containers finished successfully?
+* **`ContainersReady` (`True`/`False`):** Are all containers in the Pod ready?
+* **`Ready` (`True`/`False`):** Is the Pod ready to serve incoming traffic through Kubernetes Services?
+* **`DisruptionTarget` (`True`):** The Pod is being terminated due to node drain, eviction, or preemption.
 
 ---
 
-## 🛠️ Diagnostic Toolbox: Essential Debugging Commands
-
-When a Pod fails, run these commands in sequence to inspect the issue:
+## 🛠️ Diagnostic Master-Kit: 10 Essential Commands
 
 ```bash
-# 1. Check Pod status and restart counts across namespaces
-kubectl get pods -A -o wide
+# 1. Quick overview of all pods, nodes, IP addresses, and restarts
+kubectl get pods -o wide -A
 
-# 2. Inspect events, state transitions, and root causes (The #1 most useful command!)
+# 2. The #1 command: Detailed events, state reasons, and probe failures
 kubectl describe pod <pod-name> -n <namespace>
 
-# 3. View current application logs
+# 3. View live application logs
 kubectl logs <pod-name> -n <namespace> -c <container-name>
 
-# 4. View logs of a crashed container before its last restart
+# 4. View logs of the container BEFORE it crashed
 kubectl logs <pod-name> -n <namespace> -c <container-name> --previous
 
-# 5. Check cluster-wide recent warning events
-kubectl get events --sort-by='.metadata.creationTimestamp' -A
+# 5. Follow live stream logs with timestamps
+kubectl logs -f <pod-name> -n <namespace> --timestamps
 
-# 6. Check node health and available resources
-kubectl describe node <node-name>
+# 6. Stream logs of an Init Container
+kubectl logs <pod-name> -n <namespace> -c <init-container-name>
+
+# 7. List recent cluster warnings and scheduling failures sorted by time
+kubectl get events -n <namespace> --sort-by='.metadata.creationTimestamp'
+
+# 8. Check node resource consumption (CPU / Memory pressure)
 kubectl top nodes
 kubectl top pods -n <namespace>
+
+# 9. Dump full JSON/YAML status of a stuck Pod
+kubectl get pod <pod-name> -n <namespace> -o yaml
+
+# 10. Launch an interactive debug container directly into the Pod's network/namespace
+kubectl debug -it <pod-name> --image=nicolaka/netshoot --target=<container-name>
 ```
 
 ---
 
-## 📑 1. Scheduling & Node Assignment Errors (Before Pod starts)
-
-These errors occur when the Kubernetes Scheduler (`kube-scheduler`) is trying to place your Pod onto a suitable Worker Node.
+## 📑 1. Scheduling & Node Placement Errors (Before Pod starts)
 
 ---
 
-### 1.1 `Pending`
-* **What It Means:** The Pod definition has been accepted by Kubernetes, but it has not been scheduled onto a node or cannot start its containers yet.
-* 🎭 **Real Scenario:** You deploy a new microservice that requests `4 CPU` cores and `8 GB RAM`, but all nodes in your development cluster only have `2 CPU` and `4 GB RAM` total. The scheduler cannot find any node capable of hosting it, so the Pod stays `Pending` forever.
-* **Root Causes:**
-  - Insufficient CPU, Memory, or GPU capacity on worker nodes.
-  - Required PersistentVolumeClaim (PVC) is not bound or storage driver is unavailable.
-  - All nodes have taints that the Pod does not tolerate.
-  - NodeSelector or NodeAffinity requirements cannot be met.
-* 🔍 **How to Diagnose:**
+### 1.1 `Pending` (Generic Unscheduled)
+* **📖 What It Means:** The Pod definition has been accepted by the Kubernetes API server, but it cannot be assigned to any worker node or cannot begin container creation.
+* 🎭 **Real-World Scenario:** You create a deployment requesting `8 GB` RAM per replica with 5 replicas. Your cluster only has 3 worker nodes with `4 GB` RAM each. The scheduler evaluates every node, finds 0 eligible nodes, and keeps the Pods in `Pending` forever.
+* 🔬 **Root Causes:**
+  - Cluster compute exhaustion (No node has enough free unallocated CPU or RAM).
+  - Required PersistentVolumeClaim (PVC) is unbound.
+  - NodeSelector / Affinity conditions cannot be satisfied.
+  - Node Taints exist without matching Pod Tolerations.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
   ```
-  Look at the bottom section under **Events**. You will see: `0/3 nodes are available: 3 Insufficient cpu`.
-* 💡 **How to Fix:**
-  - Reduce the container's `resources.requests` in your YAML.
-  - Add more worker nodes to the cluster or enable Cluster Autoscaler.
-  - Check PVC status with `kubectl get pvc`.
-
----
-
-### 1.2 `FailedScheduling`
-* **What It Means:** The Kubernetes Scheduler actively attempted to find an eligible node from the list of all cluster nodes and failed all filtering steps.
-* 🎭 **Real Scenario:** Your team created specialized GPU nodes and applied a taint `gpu=true:NoSchedule` to prevent standard apps from wasting GPU resources. You deploy your app without specifying a toleration for this taint. The scheduler rejects all GPU nodes and standard nodes lack resources.
-* **Root Causes:**
-  - Nodes have untolerated Taints (`NoSchedule` or `NoExecute`).
-  - Pod Anti-Affinity rules prevent placing two instances on the same host.
-  - Cluster node limit reached (e.g., maximum pods per node `maxPods: 110`).
-* 🔍 **How to Diagnose:**
-  ```bash
-  kubectl describe pod <pod-name>
-  # Example Event:
-  # Warning  FailedScheduling  pod/backend  0/5 nodes available: 2 node(s) had untolerated taint, 3 Insufficient memory.
+  *Output under `Events`:*
+  ```text
+  Warning  FailedScheduling  default-scheduler  0/3 nodes available: 3 Insufficient memory.
   ```
-* 💡 **How to Fix:**
-  - Add appropriate `tolerations` in the Pod spec if intended for dedicated nodes:
-    ```yaml
-    tolerations:
-    - key: "gpu"
-      operator: "Equal"
-      value: "true"
-      effect: "NoSchedule"
-    ```
-  - Check Node taints: `kubectl describe node <node-name> | grep -i taints`.
+* 🛠️ **Step-by-Step Fix:**
+  1. Review container requests in YAML:
+     ```yaml
+     resources:
+       requests:
+         cpu: "250m"      # Lower from unrealistic values
+         memory: "512Mi"
+     ```
+  2. Enable Cluster Autoscaler on cloud (EKS/GKE/AKS) to add worker nodes automatically.
+  3. Verify PVC status: `kubectl get pvc -n <namespace>`.
 
 ---
 
-### 1.3 `MatchNodeSelector` / `NodeAffinity`
-* **What It Means:** The Pod explicitly requested to be placed on a node with specific labels (e.g. SSD disk, specific cloud region, ARM/x86 CPU architecture), but no matching node exists.
-* 🎭 **Real Scenario:** You build a Docker container for Linux `arm64` (Apple Silicon M-series or AWS Graviton) and set `nodeSelector: { "kubernetes.io/arch": "arm64" }`. However, all your Kubernetes nodes are standard Intel `amd64` machines.
-* **Root Causes:**
-  - Typo in node label name or value in `nodeSelector` or `nodeAffinity`.
-  - Required nodes are currently offline, drained, or deleted.
-* 🔍 **How to Diagnose:**
+### 1.2 `FailedScheduling` (Insufficient CPU / RAM / GPU)
+* **📖 What It Means:** The Scheduler ran its filter plugins against all nodes in the cluster and every single node failed the resource capacity check.
+* 🎭 **Real-World Scenario:** An AI training job specifies `resources.limits: { "nvidia.com/gpu": "2" }`. Your cluster nodes only have 1 physical GPU each, or the GPU node drivers (NVIDIA device plugin) are not installed.
+* 🔬 **Root Causes:**
+  - `Insufficient cpu`, `Insufficient memory`, or `Insufficient nvidia.com/gpu`.
+  - Node allocatable capacity is completely booked by other pods' `requests`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe nodes | grep -A 8 "Allocated resources:"
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Add dedicated GPU nodes or reduce request footprints.
+  - Audit cluster pod requests using `kubectl top nodes` vs allocated requests.
+
+---
+
+### 1.3 `MatchNodeSelector` / `NodeAffinity` Failure
+* **📖 What It Means:** The Pod explicitly specifies that it must run on a node with particular key-value labels, but no active node has those labels.
+* 🎭 **Real-World Scenario:** You deploy a Redis cache with `nodeSelector: { disktype: ssd, environment: production }`. In your new staging cluster, the nodes were labeled `env: prod` and `storage: nvme`. Because the labels do not match character-for-character, the scheduler rejects all nodes.
+* 🔬 **Root Causes:**
+  - Typo in node label key or value.
+  - Labeled nodes are currently drained, cordoned, or powered off.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl get nodes --show-labels
-  kubectl describe pod <pod-name>
+  kubectl describe pod <pod-name> | grep -A 5 "Node-Selectors:"
   ```
-* 💡 **How to Fix:**
-  - Verify node labels match your YAML: `kubectl label nodes <node-name> disktype=ssd`.
-  - Fix typos in `nodeSelector` or switch to soft affinity (`preferredDuringSchedulingIgnoredDuringExecution`).
+* 🛠️ **Step-by-Step Fix:**
+  1. Label the target worker node:
+     ```bash
+     kubectl label nodes worker-node-01 disktype=ssd environment=production
+     ```
+  2. Or switch from hard affinity (`requiredDuringSchedulingIgnoredDuringExecution`) to soft affinity (`preferredDuringSchedulingIgnoredDuringExecution`).
 
 ---
 
-## 📦 2. Image & Registry Errors
+### 1.4 `UntoleratedTaint` (`NoSchedule` / `NoExecute`)
+* **📖 What It Means:** Worker nodes have a **Taint** (a repellent barrier) applied to reserve them for special workloads, and your Pod lacks the matching **Toleration** (key/pass).
+* 🎭 **Real-World Scenario:** Master/Control-plane nodes are tainted with `node-role.kubernetes.io/control-plane:NoSchedule`. If all worker nodes crash, your pods cannot be scheduled onto the master nodes because they lack tolerations.
+* 🔬 **Root Causes:**
+  - Custom taints applied to dedicated nodes (e.g., `gpu=true:NoSchedule` or `dedicated=database:NoSchedule`).
+  - Automatic node problem taints (e.g., `node.kubernetes.io/unreachable`, `node.kubernetes.io/disk-pressure`).
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe nodes | grep -i taints
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Add the toleration to your Pod YAML:
+    ```yaml
+    tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "database"
+      effect: "NoSchedule"
+    ```
 
-These errors occur when the container runtime (`containerd` or `CRI-O`) on the assigned worker node fails to download or verify your container image.
+---
+
+### 1.5 `PodTopologySpreadFilter` / `AntiAffinity` Conflict
+* **📖 What It Means:** The scheduler cannot place the Pod without violating high-availability spreading rules (e.g. "Do not place two replicas in the same Availability Zone or on the same Node").
+* 🎭 **Real-World Scenario:** You configure `podAntiAffinity` with `requiredDuringScheduling` so that no two database replicas run on the same physical host. You request 4 replicas, but your cluster only has 3 worker nodes. The 4th replica stays `Pending`.
+* 🔬 **Root Causes:**
+  - Strict anti-affinity rules exceed physical node/zone count.
+  - Strict `topologySpreadConstraints` with `whenUnsatisfiable: DoNotSchedule`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe pod <pod-name>
+  ```
+  *Event:* `0/3 nodes available: 3 node(s) had pod anti-affinity rules`.
+* 🛠️ **Step-by-Step Fix:**
+  - Change `whenUnsatisfiable: DoNotSchedule` to `ScheduleAnyway`.
+  - Use `preferredDuringSchedulingIgnoredDuringExecution` instead of `required`.
+
+---
+
+### 1.6 `VolumeZoneConflict` (Cross-AZ Disk Attachment)
+* **📖 What It Means:** The Pod's PersistentVolume is locked in Availability Zone `A`, but the scheduler attempted to place the Pod onto a node in Availability Zone `B`.
+* 🎭 **Real-World Scenario:** In AWS EKS, an EBS volume PV was created in `us-east-1a`. All worker nodes in `us-east-1a` are currently at 100% capacity. The scheduler tries to place the pod on a node in `us-east-1b`, but EBS volumes cannot cross availability zone boundaries.
+* 🔬 **Root Causes:**
+  - StorageClass was created without `volumeBindingMode: WaitForFirstConsumer`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe pod <pod-name>
+  ```
+  *Event:* `1 node(s) had volume node affinity conflict`.
+* 🛠️ **Step-by-Step Fix:**
+  - Always configure your StorageClass with topology-aware binding:
+    ```yaml
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: ebs-gp3-sc
+    provisioner: ebs.csi.aws.com
+    volumeBindingMode: WaitForFirstConsumer
+    ```
+
+---
+
+### 1.7 `MaxPodsExceeded` / `NodeUnschedulable` (`Cordoned`)
+* **📖 What It Means:**
+  - `MaxPodsExceeded`: The worker node has reached its hard limit for running pods (default is 110 pods per node).
+  - `NodeUnschedulable`: The node has been marked `cordoned` (`SchedulingDisabled`) during maintenance.
+* 🎭 **Real-World Scenario:** A DevOps engineer ran `kubectl cordon worker-01` before a kernel upgrade and forgot to uncordon it. New pods cannot be scheduled onto `worker-01`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl get nodes
+  # Look for: "Ready,SchedulingDisabled"
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Uncordon the node:
+    ```bash
+    kubectl uncordon worker-01
+    ```
+  - For `MaxPodsExceeded`, clean up dead completed pods or increase `--max-pods` in kubelet config.
+
+---
+
+## 📦 2. Image, OCI Registry & Runtime CRI Errors
 
 ---
 
 ### 2.1 `ErrImagePull`
-* **What It Means:** The worker node failed on its initial attempt to download (pull) the container image from the container registry (Docker Hub, GitHub Container Registry, AWS ECR, Harbor, etc.).
-* 🎭 **Real Scenario:** You pushed your Docker image as `myorg/payment-service:v1.2.0`, but in the Kubernetes deployment YAML you wrote `myorg/payment-service:1.2.0` (missing the `v`). The registry returns HTTP 404 (Not Found).
-* **Root Causes:**
-  - Typo in image name, repository, or tag.
-  - The repository is private and the Pod lacks `imagePullSecrets`.
-  - Node DNS or outbound internet connection is down.
-  - Image tag does not exist.
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** The worker node's container runtime failed on its first attempt to pull the container image from the remote registry.
+* 🎭 **Real-World Scenario:** You pushed your Docker image as `registry.gitlab.com/my-org/auth:v1.4.2`, but in the Kubernetes YAML you made a typo and wrote `auth:1.4.2` (missing `v`). The registry responds with HTTP 404 Not Found.
+* 🔬 **Root Causes:**
+  - Image tag or repository name typo.
+  - Private registry credentials missing or expired.
+  - Node DNS or internet connection failure.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Example Event:
-  # Warning  Failed  kubelet  Failed to pull image "myorg/api:v1": rpc error: code = NotFound desc = failed to pull and unpack image
   ```
-* 💡 **How to Fix:**
-  - Verify the image tag exists by running `docker pull <image>` locally.
-  - For private registries, create a secret and attach it:
-    ```bash
-    kubectl create secret docker-registry regcred \
-      --docker-server=https://index.docker.io/v1/ \
-      --docker-username=<user> \
-      --docker-password=<pass> \
-      --docker-email=<email>
-    ```
-    ```yaml
-    spec:
-      imagePullSecrets:
-      - name: regcred
-    ```
+  *Event:* `Failed to pull image "...": rpc error: code = NotFound desc = failed to pull and unpack image`.
+* 🛠️ **Step-by-Step Fix:**
+  1. Test image pull locally: `docker pull <full-image-name>:<tag>`.
+  2. If private, create `imagePullSecrets`:
+     ```bash
+     kubectl create secret docker-registry my-registry-secret \
+       --docker-server=https://index.docker.io/v1/ \
+       --docker-username=myuser \
+       --docker-password=mypassword \
+       --docker-email=me@example.com
+     ```
+  3. Reference it in your Pod YAML:
+     ```yaml
+     spec:
+       imagePullSecrets:
+       - name: my-registry-secret
+     ```
 
 ---
 
 ### 2.2 `ImagePullBackOff`
-* **What It Means:** Kubernetes tried to pull the image, failed (`ErrImagePull`), and is now waiting exponentially (5s, 10s, 20s, up to 5 minutes) before trying again to avoid flooding the registry.
-* 🎭 **Real Scenario:** Your CI/CD pipeline deploys 50 Pods across a cluster using public Docker Hub images without authentication. Docker Hub enforces an anonymous pull rate limit (HTTP 429 Too Many Requests). All nodes get blocked, and pods transition into `ImagePullBackOff`.
-* **Root Causes:**
-  - Direct continuation of `ErrImagePull`.
-  - Docker Hub rate limit reached (HTTP 429).
-  - Registry authorization expired or invalid registry token.
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** Kubernetes failed to pull the image and is now waiting exponentially (10s, 20s, 40s... up to 5 mins) before trying again to prevent overwhelming the registry and network.
+* 🎭 **Real-World Scenario:** Your deployment has 20 pods that hit an image pull error. Kubernetes keeps backing off and retrying.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Look for: "toomanyrequests: You have reached your unauthenticated pull rate limit"
   ```
-* 💡 **How to Fix:**
-  - Resolve the underlying `ErrImagePull` cause.
-  - Configure authenticated credentials with `imagePullSecrets` or mirror public images to an internal registry.
+* 🛠️ **Step-by-Step Fix:**
+  - Fix the underlying `ErrImagePull` root cause.
+  - Force immediate retry after fixing:
+    ```bash
+    kubectl rollout restart deployment <deployment-name>
+    ```
 
 ---
 
 ### 2.3 `InvalidImageName`
-* **What It Means:** The image name provided in the Pod specification contains invalid syntax or illegal characters according to Docker/OCI naming conventions.
-* 🎭 **Real Scenario:** You accidentally configured an environment variable inside the image name field, resulting in `image: "my-app:$(BUILD_NUMBER)"` or uppercase letters like `MyDockerApp:V1`.
-* **Root Causes:**
-  - Uppercase letters in repository name (Docker image names must be lowercase).
-  - Spaces, unescaped special characters, or unclosed quotes in the image path.
-* 🔍 **How to Diagnose:**
-  ```bash
-  kubectl describe pod <pod-name>
-  ```
-* 💡 **How to Fix:**
-  - Fix the image name syntax to conform to OCI standards (all lowercase repository names, valid tag characters `[a-zA-Z0-9_.-]`).
+* **📖 What It Means:** The image path violates Docker/OCI syntax specifications.
+* 🎭 **Real-World Scenario:** An unrendered CI/CD template variable resulted in `image: "docker.io/repo/app:${BUILD_ID}"` or contained uppercase characters like `MyCompany/API:v1`.
+* 🔬 **Root Causes:** Uppercase letters in repository names, spaces, or illegal punctuation.
+* 🛠️ **Step-by-Step Fix:** Convert repository names to lowercase and verify variable substitution in CI pipelines.
 
 ---
 
 ### 2.4 `ErrImageNeverPull`
-* **What It Means:** You set `imagePullPolicy: Never`, which tells Kubernetes the image must ALREADY exist in the local node's cache, but the image is missing on the assigned worker node.
-* 🎭 **Real Scenario:** You are working on Minikube or Kind. You built an image on your host machine with `docker build -t test-app:local .` without loading it into the cluster node runtime or using `minikube image load test-app:local`.
-* **Root Causes:**
-  - `imagePullPolicy: Never` is configured, but the node has never pulled or cached that image.
-  - Multi-node cluster where the image was built locally on Node 1, but the Pod was scheduled on Node 2.
-* 🔍 **How to Diagnose:**
-  ```bash
-  kubectl describe pod <pod-name>
-  # Event: Container image "local-app:v1" is not present with pull policy of Never
-  ```
-* 💡 **How to Fix:**
-  - Change `imagePullPolicy` to `IfNotPresent` or `Always`.
-  - Load the image into local clusters:
-    - Minikube: `minikube image load <image-name>`
-    - Kind: `kind load docker-image <image-name>`
-    - K3s: `docker save <image> | sudo k3s ctr images import -`
+* **📖 What It Means:** The Pod specifies `imagePullPolicy: Never`, requiring the image to be pre-cached on the node, but the image is absent.
+* 🎭 **Real-World Scenario:** In local development (Minikube / Kind), you built `my-app:dev` on your host laptop Docker engine, but did not load it into the Minikube/Kind VM node.
+* 🛠️ **Step-by-Step Fix:**
+  - Load into Kind: `kind load docker-image my-app:dev --name <cluster-name>`.
+  - Load into Minikube: `minikube image load my-app:dev`.
+  - Or change `imagePullPolicy` to `IfNotPresent`.
 
 ---
 
 ### 2.5 `ImageInspectError`
-* **What It Means:** The container runtime downloaded the image, but failed when trying to unpack, read, or inspect the image filesystem manifest/metadata.
-* 🎭 **Real Scenario:** A network interruption occurred halfway through an image download or the worker node's disk ran out of space during decompression, resulting in a corrupted image layer in `/var/lib/containerd`.
-* **Root Causes:**
-  - Corrupted layer in local container storage.
-  - Incompatible image manifest format for the installed runtime version.
-* 🔍 **How to Diagnose:**
-  ```bash
-  kubectl describe pod <pod-name>
-  ```
-* 💡 **How to Fix:**
-  - SSH into the node and clean the cache: `crictl rmi <image-id>` or `docker rmi <image-id>`.
-  - Re-trigger Pod creation: `kubectl delete pod <pod-name>`.
+* **📖 What It Means:** The container runtime pulled the image layers, but could not parse the image config manifest or tar metadata.
+* 🎭 **Real-World Scenario:** The worker node experienced disk corruption or ran out of disk space halfway through decompressing a 5 GB layer in `/var/lib/containerd`.
+* 🛠️ **Step-by-Step Fix:**
+  - SSH into the node and remove cached corrupted image:
+    ```bash
+    sudo crictl rmi <image-id>
+    ```
+  - Re-trigger pod: `kubectl delete pod <pod-name>`.
 
 ---
 
-## ⚙️ 3. Configuration & Secret Errors
+### 2.6 `ImageArchitectureMismatch` (`exec format error`)
+* **📖 What It Means:** The container image was compiled for a CPU architecture different from the worker node CPU (e.g. ARM64 vs x86_64 AMD64).
+* 🎭 **Real-World Scenario:** A developer on an Apple Silicon Mac (M1/M2/M3 - ARM64) built a Docker image using `docker build -t app:v1 .` and pushed it. The production Kubernetes cluster runs on Intel Xeon x86_64 machines. The container crashes immediately with: `standard_init_linux.go: exec user process caused "exec format error"`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl logs <pod-name> --previous
+  # Look for: "exec format error"
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Build multi-architecture images using Docker Buildx:
+    ```bash
+    docker buildx build --platform linux/amd64,linux/arm64 -t myorg/app:v1 --push .
+    ```
 
-These errors occur when Kubernetes is preparing the container's environment (environment variables, ConfigMaps, Secrets, volume mounts) right before launching the container process.
+---
+
+### 2.7 `RegistryUnauthorized` / `401 Unauthorized` / `403 Forbidden`
+* **📖 What It Means:** The registry rejected the pull request due to missing, invalid, or expired credentials.
+* 🎭 **Real-World Scenario:** AWS ECR authorization tokens expire every 12 hours. If your cluster uses a cron job to refresh ECR tokens and the job fails, all new pod image pulls fail with `401 Unauthorized`.
+* 🛠️ **Step-by-Step Fix:**
+  - Refresh ECR / GCP Artifact Registry credentials or configure AWS IRSA (IAM Roles for Service Accounts) with Amazon EKS.
+
+---
+
+### 2.8 `DockerHubRateLimit` (`HTTP 429 Too Many Requests`)
+* **📖 What It Means:** Anonymous image pulls from Docker Hub exceeded 100 pulls per 6 hours per IP address.
+* 🎭 **Real-World Scenario:** An entire office or shared cloud NAT gateway IP pulls public base images (`python:3.11`, `node:18`). Docker Hub blocks requests with HTTP 429.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe pod <pod-name>
+  # Look for: "toomanyrequests: You have reached your unauthenticated pull rate limit"
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Add an authenticated Docker Hub secret or mirror public images to your private internal registry (e.g. AWS ECR / Harbor).
+
+---
+
+## ⚙️ 3. Container Configuration, Runtime & Security Context Errors
 
 ---
 
 ### 3.1 `CreateContainerConfigError`
-* **What It Means:** Kubernetes cannot create the container configuration because a referenced `ConfigMap` or `Secret` is missing, misspelled, or not found in the same namespace.
-* 🎭 **Real Scenario:** Your backend deployment references a secret for database passwords:
+* **📖 What It Means:** Kubernetes cannot configure container environment variables or volume mounts because a referenced `ConfigMap` or `Secret` does not exist in the same namespace.
+* 🎭 **Real-World Scenario:** Your deployment YAML references a ConfigMap for environment configuration:
   ```yaml
-  env:
-    - name: DB_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: app-secrets-prod  # <-- You haven't created this secret yet!
-          key: password
+  envFrom:
+    - configMapRef:
+        name: api-config  # <-- Typo! The actual ConfigMap was named api-configuration
   ```
-  Since `app-secrets-prod` does not exist, Kubernetes cannot start the container.
-* **Root Causes:**
-  - Referenced `ConfigMap` or `Secret` does not exist in the Pod's namespace.
-  - Referenced key inside the ConfigMap/Secret does not match (case-sensitive).
-* 🔍 **How to Diagnose:**
+  Kubernetes blocks container creation.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Look for: Error: configmap "app-config" not found OR secret "db-secrets" not found
+  # Look for: Error: configmap "api-config" not found
   ```
-* 💡 **How to Fix:**
-  - List existing ConfigMaps & Secrets:
-    ```bash
-    kubectl get configmaps -n <namespace>
-    kubectl get secrets -n <namespace>
-    ```
-  - Create the missing resource or fix the naming typo in your deployment YAML.
-  - If the secret/config is optional, add `optional: true`.
+* 🛠️ **Step-by-Step Fix:**
+  1. Check existing resources: `kubectl get configmap,secret -n <namespace>`.
+  2. Fix the typo in YAML or create the missing ConfigMap/Secret.
 
 ---
 
 ### 3.2 `CreateContainerError`
-* **What It Means:** The container runtime failed while attempting to construct the container container sandbox.
-* 🎭 **Real Scenario:** You specified two different volume mounts pointing to the exact same `mountPath` (e.g. `/etc/config` mounted twice), or configured an invalid Linux security capability that the node kernel does not support.
-* **Root Causes:**
-  - Conflicting or duplicate `mountPath` declarations in the container spec.
-  - Invalid `securityContext` settings (e.g., `readOnlyRootFilesystem: true` while the app tries to create temp files in `/tmp`).
-  - Requesting privileged operations on a cluster with Pod Security Standards (PSS) / OPA Gatekeeper restrictions.
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** The low-level container runtime (`containerd`/`runc`) failed while constructing the container sandbox.
+* 🎭 **Real-World Scenario:** You declared two volume mounts pointing to the exact same `mountPath: /var/log`, or specified conflicting security capabilities.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
   ```
-* 💡 **How to Fix:**
-  - Verify volume mounts have unique destination paths.
-  - Review and adjust `securityContext` rules.
+* 🛠️ **Step-by-Step Fix:**
+  - Ensure every volume mount has a unique, non-overlapping `mountPath`.
+  - Validate `securityContext` settings.
 
 ---
 
 ### 3.3 `RunContainerError`
-* **What It Means:** The container was created successfully, but failed immediately when the runtime attempted to execute the entrypoint process.
-* 🎭 **Real Scenario:** You wrote an entrypoint script `entrypoint.sh` on Windows with `CRLF` line endings or built a Docker image where the binary `/app/start.sh` does not have executable permissions (`chmod +x`).
-* **Root Causes:**
-  - Permission Denied (`126`) on entrypoint script or executable.
-  - Windows CRLF line endings in Linux shell scripts (`/bin/sh^M: bad interpreter`).
-  - Attempting to allocate a TTY (`tty: true`) when not supported.
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** The container sandbox was created, but execution failed at the moment of starting the process.
+* 🎭 **Real-World Scenario:** You wrote an `entrypoint.sh` script on Windows with Windows `CRLF` newlines and forgot `chmod +x`. When Linux tries to run it, `/bin/sh^M: bad interpreter: No such file or directory` or `permission denied` occurs.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Example: failed to start container: exec: "/app/entrypoint.sh": permission denied
+  # Look for: failed to start container: exec: "/app/start.sh": permission denied
   ```
-* 💡 **How to Fix:**
-  - Ensure execution permissions in `Dockerfile`: `RUN chmod +x /app/entrypoint.sh`.
-  - Fix line endings with `dos2unix` or in your IDE before building images.
+* 🛠️ **Step-by-Step Fix:**
+  - In `Dockerfile`: Add `RUN chmod +x /app/entrypoint.sh`.
+  - Convert line endings: `dos2unix entrypoint.sh`.
 
 ---
 
-### 3.4 `PostStartHookError` / `PreStopHookFailed`
-* **What It Means:** A lifecycle hook (`postStart` or `preStop` handler) configured in the Pod spec failed or timed out.
-* 🎭 **Real Scenario:** You added a `postStart` HTTP hook to notify an external discovery service when the container starts. The external service is down or returns a 500 error, causing Kubernetes to immediately kill the container.
-* **Root Causes:**
-  - PostStart hook command exited with non-zero exit code.
-  - PreStop hook took longer than `terminationGracePeriodSeconds`.
-* 🔍 **How to Diagnose:**
-  ```bash
-  kubectl describe pod <pod-name>
+### 3.4 `RunAsNonRootError` / `MustRunAsNonRoot`
+* **📖 What It Means:** Your Pod specifies `runAsNonRoot: true`, but the Docker image specifies `USER root` (UID 0) and has no numeric non-root user defined.
+* 🎭 **Real-World Scenario:** For enterprise compliance, you configure:
+  ```yaml
+  securityContext:
+    runAsNonRoot: true
   ```
-* 💡 **How to Fix:**
-  - Check the hook command / script logic. Ensure `postStart` handlers are asynchronous or complete quickly.
+  The container image is standard `nginx:latest`, which runs as root by default. Kubernetes halts execution with `container has runAsNonRoot and image will run as root`.
+* 🛠️ **Step-by-Step Fix:**
+  - Add explicit UID/GID in your Pod YAML:
+    ```yaml
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 10001
+      runAsGroup: 10001
+    ```
+  - Or update the `Dockerfile` with `USER 10001`.
 
 ---
 
-## 💾 4. Storage & Volume Mounting Errors
-
-These errors occur when a Pod requires persistent disks (AWS EBS, GCP Persistent Disk, Azure Disk, Longhorn, Ceph, NFS) that fail to attach or mount.
+### 3.5 `ReadOnlyFilesystemError`
+* **📖 What It Means:** The Pod specifies `readOnlyRootFilesystem: true`, and the container process attempted to write to a directory on disk that is not mounted as a writable volume.
+* 🎭 **Real-World Scenario:** A Java or Python app tries to create temporary files in `/tmp` or write logs to `/var/log/app.log`. The OS returns `Read-only file system (errno 30)` and crashes.
+* 🛠️ **Step-by-Step Fix:**
+  - Mount an in-memory `emptyDir` volume specifically for temporary directories:
+    ```yaml
+    volumeMounts:
+    - name: tmp-volume
+      mountPath: /tmp
+    volumes:
+    - name: tmp-volume
+      emptyDir: {}
+    ```
 
 ---
 
-### 4.1 `ContainerCreating` (Stuck)
-* **What It Means:** The Pod is stuck in `ContainerCreating` state for several minutes, waiting for disk attachment or network interface setup.
-* 🎭 **Real Scenario:** A node in your AWS cluster crashed abruptly. Its EBS volume is still marked as attached to the dead node in AWS EC2. When Kubernetes attempts to recreate the Pod on a new node, AWS refuses to attach the disk (`Multi-Attach error for volume`).
-* **Root Causes:**
-  - Cloud storage volume is still locked/attached to an old terminated node.
-  - Calico / Flannel / Cilium CNI failed to allocate an IP address from the subnet.
-  - Secret or ConfigMap mounted as volume is missing.
-* 🔍 **How to Diagnose:**
+### 3.6 `PostStartHookError` & `PreStopHookFailed`
+* **📖 What It Means:**
+  - `PostStartHookError`: The lifecycle `postStart` command or HTTP request failed with a non-zero exit code. Kubernetes terminates the container immediately.
+  - `PreStopHookFailed`: The lifecycle `preStop` handler hung or timed out during container shutdown.
+* 🎭 **Real-World Scenario:** You configure a `postStart` command to warm up cache: `command: ["curl", "http://localhost:8080/warmup"]`. The web server has not finished binding to port 8080 when curl executes, causing curl to exit with code 7 (Connection refused) and killing the container.
+* 🛠️ **Step-by-Step Fix:**
+  - Ensure `postStart` handlers are resilient, non-blocking, or include retry loops:
+    ```yaml
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "until nc -z localhost 8080; do sleep 1; done"]
+    ```
+
+---
+
+## 💾 4. Storage, CSI Driver & Volume Mounting Errors
+
+---
+
+### 4.1 `ContainerCreating` (Stuck on Volume Attachment)
+* **📖 What It Means:** The Pod is stuck in `ContainerCreating` state for over 5 minutes because a Persistent Volume cannot be attached to the node or network interface setup is blocked.
+* 🎭 **Real-World Scenario:** A worker node was terminated abruptly. Its AWS EBS volume remains registered as "In-Use" on the AWS EC2 management plane. When Kubernetes recreates the Pod on a healthy node, AWS refuses to attach the volume.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
   ```
-  Look for `AttachVolume.Attach failed` or `CNI failed to set up pod network`.
-* 💡 **How to Fix:**
-  - For volume locks: Detach the stuck volume in your cloud console or wait for the CSI driver timeout.
-  - For CNI IP exhaustion: Check IP pool capacity (`kubectl get ippools` in Calico).
+  *Event:* `Warning FailedAttachVolume VolumeAttachment "csi-xxx" is still attached to node "worker-02"`.
+* 🛠️ **Step-by-Step Fix:**
+  - Wait for the CSI driver attach-detach controller timeout (usually 6-8 minutes).
+  - Manually detach the stuck volume in your cloud console if urgent.
 
 ---
 
 ### 4.2 `FailedMount` & `FailedAttachVolume`
-* **What It Means:** 
-  - `FailedAttachVolume`: The storage controller failed to attach the physical disk from the cloud provider to the VM.
-  - `FailedMount`: The disk is attached to the VM, but the Linux filesystem cannot mount it to the container directory.
-* 🎭 **Real Scenario 1 (FailedAttachVolume):** The worker node is located in AWS availability zone `us-east-1a`, but the EBS volume (PV) was created in `us-east-1b`. Cross-AZ volume attachment is physically impossible.
-* 🎭 **Real Scenario 2 (FailedMount):** A previous crash caused filesystem corruption on the disk, or the disk filesystem is read-only.
-* **Root Causes:**
-  - Availability Zone (AZ) mismatch between PV and Node.
-  - Cloud IAM permissions missing on worker node (e.g. AWS `ec2:AttachVolume` denied).
-  - Storage provider reached IOPS / volume count limit per EC2 instance.
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** 
+  - `FailedAttachVolume`: The cloud storage provider failed to connect the virtual disk to the VM instance.
+  - `FailedMount`: The disk is attached to the VM, but the OS failed to format or mount the filesystem (e.g. ext4/xfs).
+* 🎭 **Real-World Scenario:** Worker node IAM role is missing `ec2:AttachVolume` permission in AWS, or disk filesystem is corrupted.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  kubectl get pv,pvc -n <namespace>
+  kubectl get pv,pvc -A
   ```
-* 💡 **How to Fix:**
-  - Ensure storage class uses topology-aware volume binding:
-    ```yaml
-    volumeBindingMode: WaitForFirstConsumer
-    ```
-  - Verify Cloud IAM permissions for your CSI driver.
+* 🛠️ **Step-by-Step Fix:**
+  - Verify Cloud IAM policy permissions attached to worker node instances.
+  - Check node dmesg logs: `sudo dmesg | grep -i "filesystem"`.
 
 ---
 
-## 🔄 5. Init Container Errors
-
-Init Containers run *before* app containers. If an Init Container fails, main application containers **will never start**.
-
----
-
-### 5.1 `Init:0/1` / `Init:1/2` (Waiting or Stuck)
-* **What It Means:** The Pod is currently waiting for one or more Init Containers to finish executing successfully.
-* 🎭 **Real Scenario:** You configured an Init Container running `until nc -z postgres-service 5432; do sleep 2; done` to wait for PostgreSQL. If PostgreSQL is offline or the service name has a typo, the Init Container loops indefinitely and stays in `Init:0/1`.
-* **Root Causes:**
-  - Init container is waiting on a downstream dependency (database, microservice, API).
-  - Init container is performing a very large download or heavy data migration.
-* 🔍 **How to Diagnose:**
+### 4.3 `PersistentVolumeClaimNotBound` / `ProvisioningFailed`
+* **📖 What It Means:** The Pod requests a PVC, but the PVC status is `Pending` because no matching PersistentVolume exists and dynamic provisioning failed.
+* 🎭 **Real-World Scenario:** Your PVC requests `storageClassName: standard-ssd`, but the cluster only defines a StorageClass named `gp3`.
+* 🔍 **How to Inspect:**
   ```bash
-  # Check logs of the specific init container
+  kubectl get sc
+  kubectl describe pvc <pvc-name> -n <namespace>
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Align the `storageClassName` in your PVC with the available StorageClasses in `kubectl get sc`.
+
+---
+
+### 4.4 `VolumeSubpathInitializationFailed`
+* **📖 What It Means:** You used `subPath` in `volumeMounts` to mount a single file from a ConfigMap/Secret or Persistent Volume, but the specified key or directory path does not exist.
+* 🎭 **Real-World Scenario:**
+  ```yaml
+  volumeMounts:
+  - name: config
+    mountPath: /app/config.json
+    subPath: configuration.json  # <-- Typo! The ConfigMap key was named config.json
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Verify the exact key name inside the ConfigMap: `kubectl get configmap <name> -o yaml`.
+
+---
+
+### 4.5 `Multi-Attach error for volume` (ReadWriteOnce Conflict)
+* **📖 What It Means:** A PersistentVolume with access mode `ReadWriteOnce` (RWO) is mounted by a Pod on Node 1, and another Pod on Node 2 tries to mount the same volume simultaneously.
+* 🎭 **Real-World Scenario:** You trigger a RollingUpdate deployment with `replicas: 1` attached to an RWO volume. The new Pod starts on Node 2 while the old Pod is still terminating on Node 1. Node 2 gets blocked with `Multi-Attach error`.
+* 🛠️ **Step-by-Step Fix:**
+  - Use `strategy: { type: Recreate }` for Single-Replica Stateful Deployments:
+    ```yaml
+    spec:
+      strategy:
+        type: Recreate
+    ```
+  - Or use `ReadWriteMany` (RWX) storage (e.g. AWS EFS, NFS, CephFS).
+
+---
+
+## 🔄 5. Init Container & Modern Sidecar Errors
+
+---
+
+### 5.1 `Init:0/N` / `Init:1/N` (Stuck Waiting)
+* **📖 What It Means:** The Pod is waiting for Init Container #1 or #2 to complete before it can start the application container.
+* 🎭 **Real-World Scenario:** You have an init container running:
+  ```bash
+  until nc -z postgres-service 5432; do echo waiting for db; sleep 2; done
+  ```
+  The database is down, so the Init Container loops forever and stays in `Init:0/1`.
+* 🔍 **How to Inspect:**
+  ```bash
   kubectl logs <pod-name> -c <init-container-name>
   ```
-* 💡 **How to Fix:**
-  - Check why the external dependency is not responding.
-  - Add timeout logic or verify service discovery DNS.
+* 🛠️ **Step-by-Step Fix:**
+  - Identify which dependency is failing by inspecting the init container logs.
+  - Verify network connectivity to the target service.
 
 ---
 
 ### 5.2 `Init:CrashLoopBackOff` & `Init:Error`
-* **What It Means:**
-  - `Init:Error`: The Init container started and immediately crashed with a non-zero exit code.
-  - `Init:CrashLoopBackOff`: Kubernetes is retrying to execute the crashed Init container with an exponential backoff delay.
-* 🎭 **Real Scenario:** An Init Container runs database schema migrations (`flyway` or `prisma migrate deploy`). The migration script hits an invalid SQL statement or invalid database credentials, throws an error, and terminates with exit code `1`.
-* **Root Causes:**
-  - Database migration syntax error or bad credentials.
-  - Permission denied when writing to a shared `emptyDir` volume (`chmod 777` needed).
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** The Init container crashed with a non-zero exit code (e.g. exit code 1). Main app containers will **never** start.
+* 🎭 **Real-World Scenario:** An Init Container runs database schema migrations (`flyway migrate` or `prisma migrate deploy`). The database credentials in the secret are wrong, causing the migration to abort with an authentication error.
+* 🔍 **How to Inspect:**
   ```bash
-  kubectl logs <pod-name> -c <init-container-name>
-  kubectl describe pod <pod-name>
+  kubectl logs <pod-name> -c <init-container-name> --previous
   ```
-* 💡 **How to Fix:**
-  - Inspect the init container log output, fix the script/migration error, and update the deployment.
+* 🛠️ **Step-by-Step Fix:**
+  - Fix the database migration SQL script or credentials.
 
 ---
 
 ### 5.3 `Init:ImagePullBackOff`
-* **What It Means:** The Init container image itself cannot be downloaded from the container registry.
-* 🎭 **Real Scenario:** You used an alpine image `alpine:latestt` (typo) for your Init container.
-* 💡 **How to Fix:**
-  - Apply the same fixes as section [2.1 ErrImagePull](#21-errimagepull).
+* **📖 What It Means:** The Init Container's image cannot be downloaded from the container registry.
+* 🛠️ **Step-by-Step Fix:** Refer to Section 2.1 to resolve registry access or image tag typos.
 
 ---
 
-## 💥 6. Runtime, Crash & Resource Errors
-
-These are the most common application-level errors encountered when containers execute code and interact with system resources.
+### 5.4 `ServiceMeshSidecarNotReady` (Istio/Envoy / Linkerd Proxy Delay)
+* **📖 What It Means:** In clusters with Service Mesh auto-injection (Istio / Linkerd / Consul), the main app container starts and attempts outbound network requests before the Envoy sidecar proxy is fully initialized, causing immediate network failures.
+* 🎭 **Real-World Scenario:** A Spring Boot app boots up, tries to connect to PostgreSQL immediately on startup, and fails with `Connection refused` because Istio Envoy proxy (`istio-proxy`) is still booting.
+* 🛠️ **Step-by-Step Fix:**
+  - In Kubernetes 1.28+, use native sidecar containers (`restartPolicy: Always` in `initContainers`).
+  - In Istio: Enable `holdApplicationUntilProxyStarts: true` in Istio mesh config.
 
 ---
 
-### 6.1 `Error`
-* **What It Means:** The container started, executed, and terminated with a non-zero exit code (e.g., exit code 1).
-* 🎭 **Real Scenario:** A Python Flask app starts up, reads an environment variable `DATABASE_URL`, finds it empty, raises an unhandled `KeyError: 'DATABASE_URL'`, and exits immediately.
-* **Root Causes:**
-  - Unhandled application runtime exception.
-  - Missing mandatory configuration or environment variable.
-  - Port collision (attempting to bind to a port already in use).
-* 🔍 **How to Diagnose:**
+## 💥 6. Runtime Crashes, Memory & Resource Starvation
+
+---
+
+### 6.1 `Error` (Non-Zero Exit Code)
+* **📖 What It Means:** The container started, executed application code, and exited with an error status (e.g. exit code 1).
+* 🎭 **Real-World Scenario:** A Node.js backend starts up, attempts to read `process.env.JWT_SECRET`, finds it undefined, and throws an unhandled exception: `TypeError: Cannot read property 'length' of undefined`.
+* 🔍 **How to Inspect:**
   ```bash
-  kubectl logs <pod-name>
-  # If already restarted:
   kubectl logs <pod-name> --previous
   ```
-* 💡 **How to Fix:**
-  - Fix the exception inside your application code or provide the missing configuration.
+* 🛠️ **Step-by-Step Fix:**
+  - Check the stack trace in logs and supply the missing environment variable or configuration.
 
 ---
 
 ### 6.2 `CrashLoopBackOff`
-* **What It Means:** The container crashes repeatedly after starting. Kubernetes tries to restart it, applying exponential backoff delay (10s → 20s → 40s → 80s → up to 5 minutes) to protect system CPU/disk from crash loops.
-* 🎭 **Real Scenario:** Your Java Spring Boot app requires 1GB RAM to initialize its JVM heap. In Kubernetes, you set `resources.limits.memory: "512Mi"`. Every time the app boots, it exceeds the limit and gets killed immediately. Kubernetes restarts it forever in a `CrashLoopBackOff`.
-* **Root Causes:**
-  - Underlying repeated `Error` or `OOMKilled`.
-  - Misconfigured command or entrypoint in the Docker image.
-  - Missing dependent service (app fails fast if it cannot connect to Redis/RabbitMQ).
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** The container keeps crashing immediately after startup. Kubernetes applies exponential backoff delay (10s → 20s → 40s → 80s → up to 300s) to avoid thrashing the CPU.
+* 🎭 **Real-World Scenario:** A Python service connects to Redis on startup. If Redis is unreachable, the Python code calls `sys.exit(1)`. Every time Kubernetes restarts the pod, it crashes again.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Look under "Last State" -> Exit Code and Reason
+  # Check "Last State" -> Reason and Exit Code
   kubectl logs <pod-name> --previous
   ```
-* 💡 **How to Fix:**
-  - Check the previous logs with `kubectl logs <pod-name> --previous`.
-  - Identify the exit code (e.g. Exit code 137 = Out of Memory, Exit code 1 = Application crash).
+* 🛠️ **Step-by-Step Fix:**
+  - Determine whether the crash is application code (Exit 1), out of memory (Exit 137), or binary not found (Exit 127).
 
 ---
 
-### 6.3 `OOMKilled` (Exit Code 137)
-* **What It Means:** **Out Of Memory Killed**. The container consumed more memory than allowed by its `resources.limits.memory` setting, and the Linux kernel Out-Of-Memory Killer sent a `SIGKILL` (Signal 9) to protect the host machine.
-* 🎭 **Real Scenario:** An image processing microservice receives a batch upload of 4K images. The Node.js buffer expands to 1.5 GB memory, exceeding the `limits.memory: 1Gi` limit. The Linux kernel immediately kills the container.
-* **Root Causes:**
-  - Memory limit (`resources.limits.memory`) configured too low for application peak loads.
-  - Application memory leak (e.g., unclosed database connections, growing in-memory caches).
-  - Java JVM unaware of container memory constraints (JVM heap larger than container limit).
-* 🔍 **How to Diagnose:**
+### 6.3 `OOMKilled` (Exit Code 137 - Out of Memory)
+* **📖 What It Means:** The container exceeded its `resources.limits.memory` threshold, and the Linux kernel Out-Of-Memory Killer immediately sent a `SIGKILL` (Signal 9) to protect host stability.
+* 🎭 **Real-World Scenario:** A PDF generation service receives a 100-page document. Memory usage spikes from 200 MB to 1.2 GB. The container memory limit was set to `512Mi`. The Linux kernel kills the container instantly.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Look for:
-  # State:          Terminated
-  #   Reason:       OOMKilled
-  #   Exit Code:    137
   ```
-* 💡 **How to Fix:**
-  - Increase `resources.limits.memory` in your deployment YAML:
-    ```yaml
-    resources:
-      requests:
-        memory: "512Mi"
-      limits:
-        memory: "2Gi"
-    ```
-  - For Java: configure JVM flags `-XX:MaxRAMPercentage=75.0` or `-Xmx`.
-  - Profile the application to detect memory leaks.
+  *Output:*
+  ```text
+  State:          Terminated
+    Reason:       OOMKilled
+    Exit Code:    137
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  1. Increase `resources.limits.memory` in your deployment YAML:
+     ```yaml
+     resources:
+       requests:
+         memory: "512Mi"
+       limits:
+         memory: "2Gi"
+     ```
+  2. For Java applications: Configure JVM heap options (`-XX:MaxRAMPercentage=75.0` or `-Xmx1500m`).
+  3. Inspect memory leaks using heap profilers.
 
 ---
 
-### 6.4 `Completed` (Exit Code 0)
-* **What It Means:** The container completed its task successfully and exited with exit code `0`.
-* 🎭 **Real Scenario:** A Kubernetes `Job` runs a backup script at midnight. Once the backup is saved to S3, the script exits cleanly with `exit 0`.
-* **Is this an error?**
-  - **No** for Kubernetes `Jobs` or `CronJobs` — this is the expected healthy result.
-  - **Yes** if this was supposed to be a continuous web server (like Nginx or Express). If a web server container shows `Completed`, it means your process ran in the background / detached mode instead of foreground mode (e.g., running `systemctl start nginx` instead of `nginx -g 'daemon off;'`).
+### 6.4 `Completed` (Exit Code 0 on Web Servers)
+* **📖 What It Means:** The container process finished and exited cleanly with status code `0`.
+* 🎭 **Real-World Scenario:** You containerized Nginx or an Express app, but the entrypoint command was `systemctl start nginx` or `node index.js &` (background daemon). Because the backgrounded process detaches, the main foreground PID 1 process terminates immediately with code 0.
+* 🛠️ **Step-by-Step Fix:**
+  - Ensure the main container process runs in the **foreground** as PID 1:
+    - Nginx: `CMD ["nginx", "-g", "daemon off;"]`
+    - Node.js: `CMD ["node", "index.js"]`
 
 ---
 
-## 🏥 7. Health Check (Probes) & Network Errors
+### 6.5 `ContainerStatusUnknown`
+* **📖 What It Means:** The control plane cannot determine the container state because the worker node's container runtime or kubelet stopped reporting status.
+* 🛠️ **Step-by-Step Fix:** Check node health and kubelet status: `sudo systemctl status kubelet`.
 
-Kubernetes uses three types of Probes to verify container health: **Startup**, **Liveness**, and **Readiness**.
+---
+
+## 🏥 7. Health Checks (Probes) & Networking/DNS Errors
 
 ---
 
 ### 7.1 `Unhealthy` (Liveness Probe Failed)
-* **What It Means:** The container's Liveness Probe failed `failureThreshold` times in a row. Kubernetes assumes the container is deadlocked or frozen and **kills & restarts** it.
-* 🎭 **Real Scenario:** A backend API experiences a thread deadlock or CPU spike (100%), rendering the `/healthz` endpoint unresponsive. When the kubelet queries `/healthz`, the HTTP request times out. After 3 failed attempts, Kubernetes restarts the pod.
-* **Root Causes:**
-  - Application deadlock or unresponsive event loop.
-  - Probe `timeoutSeconds` is too low for heavy load.
-  - Health check endpoint performs deep database queries and times out.
-* 🔍 **How to Diagnose:**
+* **📖 What It Means:** The Liveness Probe failed consecutive checks equal to `failureThreshold`. Kubernetes assumes the process is deadlocked or permanently broken and **kills & restarts the container**.
+* 🎭 **Real-World Scenario:** A backend API experiences a database thread pool exhaustion. The `/healthz` endpoint blocks trying to acquire a DB connection and times out after 3 seconds. Kubernetes restarts the container repeatedly.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Look for: Warning  Unhealthy  Liveness probe failed: HTTP probe failed with statuscode: 500
+  # Warning  Unhealthy  Liveness probe failed: HTTP probe failed with statuscode: 500
   ```
-* 💡 **How to Fix:**
-  - Ensure liveness endpoints are lightweight (check in-memory status, do not query all external databases).
-  - Increase `timeoutSeconds` or `initialDelaySeconds` in probe settings:
+* 🛠️ **Step-by-Step Fix:**
+  - Keep Liveness Probes lightweight (check local server status, avoid deep external DB queries).
+  - Tune probe thresholds:
     ```yaml
     livenessProbe:
       httpGet:
         path: /healthz
         port: 8080
-      initialDelaySeconds: 15
+      initialDelaySeconds: 30
       timeoutSeconds: 5
       failureThreshold: 3
     ```
 
 ---
 
-### 7.2 `ReadinessProbeFailed`
-* **What It Means:** The Readiness Probe failed. The container is **NOT restarted**, but Kubernetes removes the Pod from the Service load balancer so it **receives no incoming user traffic**.
-* 🎭 **Real Scenario:** Your app relies on Redis for caching. When Redis goes down, your app's `/ready` endpoint returns HTTP 503. Kubernetes keeps the container alive but stops routing user requests to it until Redis recovers.
-* **Root Causes:**
-  - App is still warming up, compiling JIT caches, or loading big datasets.
-  - Downstream dependency (database, external API) is unreachable.
-* 🔍 **How to Diagnose:**
+### 7.2 `ReadinessProbeFailed` (Traffic Cut Off)
+* **📖 What It Means:** The Readiness Probe failed. The container is **NOT restarted**, but Kubernetes immediately removes the Pod IP from the Service endpoints load balancer so users receive no errors.
+* 🎭 **Real-World Scenario:** An e-commerce API is warming up local caches. During this 20-second warmup, the `/ready` probe returns HTTP 503. Kubernetes routes user traffic only to existing healthy replicas.
+* 🔍 **How to Inspect:**
   ```bash
   kubectl describe pod <pod-name>
-  # Warning  Unhealthy  Readiness probe failed: Get "http://10.244.1.5:8080/ready": dial tcp: connection refused
+  kubectl get endpoints <service-name>
   ```
-* 💡 **How to Fix:**
-  - Check why the readiness endpoint is failing in application logs (`kubectl logs <pod-name>`).
-  - Tune `initialDelaySeconds` if the application naturally takes time to warm up.
+* 🛠️ **Step-by-Step Fix:**
+  - Check why `/ready` is returning non-200 in app logs.
+  - Increase `initialDelaySeconds` to give the app adequate time to boot.
 
 ---
 
-### 7.3 `StartupProbeFailed`
-* **What It Means:** The Startup Probe timed out before the container finished booting. Kubernetes kills and restarts the container.
-* 🎭 **Real Scenario:** A legacy Enterprise Java / Spring application takes 90 seconds to boot up on cold start. The liveness probe has an initial delay of only 30 seconds. By adding a `startupProbe`, you grant the app up to 2 minutes to boot without being killed prematurely.
-* 💡 **How to Fix:**
-  - Add or increase `startupProbe` failure allowance:
+### 7.3 `StartupProbeFailed` (Slow Boot Timeout)
+* **📖 What It Means:** The container failed to respond successfully to the Startup Probe within the total allotted startup window. Kubernetes restarts the container.
+* 🎭 **Real-World Scenario:** A large Java Spring Boot monolithic app takes 110 seconds to start on cold boot. The liveness probe starts checking after 30 seconds and kills the app before it ever finishes booting.
+* 🛠️ **Step-by-Step Fix:**
+  - Add a dedicated `startupProbe` to disable liveness checks during boot:
     ```yaml
     startupProbe:
       httpGet:
         path: /healthz
         port: 8080
       failureThreshold: 30
-      periodSeconds: 10   # 30 * 10s = 300 seconds (5 minutes max startup window)
+      periodSeconds: 10   # Gives up to 30 * 10s = 300 seconds (5 minutes) to start
     ```
 
 ---
 
-## 🚪 8. Eviction, Preemption & Teardown Errors
-
-These errors occur when Kubernetes forcefully evicts or terminates Pods due to node resource pressure, priority scheduling, or node failure.
+### 7.4 `NetworkNotReady` / `CNINetworkError`
+* **📖 What It Means:** The node cannot start pods because the CNI plugin (Calico, Flannel, AWS VPC CNI, Cilium) is failing or cannot assign IP addresses.
+* 🎭 **Real-World Scenario:** In AWS EKS, worker nodes run out of available secondary ENI private IP addresses in your subnet CIDR. New pods fail with `failed to assign an IP address to container`.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe node <node-name> | grep -i network
+  kubectl get pods -n kube-system
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Check CNI daemonset pods in `kube-system`: `kubectl logs -n kube-system -l k8s-app=aws-node`.
+  - Expand subnet CIDR or add additional subnets.
 
 ---
 
-### 8.1 `Evicted`
-* **What It Means:** The Pod was forcefully expelled from the node by the `kubelet` because the node ran out of critical physical resources.
-* 🎭 **Real Scenario:** A rogue logging script writes 100 GB of logs to `/var/log` on the host node, filling up the disk to 95%. The kubelet triggers `DiskPressure` and begins evicting pods according to their QoS class (`BestEffort` first, then `Burstable`) to save the node from freezing.
-* **Root Causes:**
-  - `DiskPressure`: Node disk utilization exceeded threshold (usually >85%).
-  - `MemoryPressure`: Node total available RAM is critically low.
-  - `PIDPressure`: Too many OS processes running on the node.
-* 🔍 **How to Diagnose:**
+### 7.5 `CoreDNS CrashLoopBackOff` & DNS Lookup Timeouts
+* **📖 What It Means:** The cluster DNS resolver (`coredns`) is crashing, causing all pods to fail when resolving domain names or service names (`mysql-service.default.svc.cluster.local`).
+* 🎭 **Real-World Scenario:** The host node `/etc/resolv.conf` contains an upstream nameserver `127.0.0.53` (systemd-resolved loop). CoreDNS inherits this and detects a forwarding loop, crashing immediately to prevent infinite DNS loops.
+* 🔍 **How to Inspect:**
   ```bash
-  kubectl describe pod <pod-name>
-  # Look for: Reason: Evicted, Message: The node was low on resource: ephemeral-storage.
+  kubectl logs -n kube-system -l k8s-app=kube-dns
+  # Look for: "Loop ... detected in plugin/loop"
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Fix host `/etc/resolv.conf` nameservers to point directly to upstream DNS (e.g. `8.8.8.8` or internal gateway).
+
+---
+
+### 7.6 `AdmissionWebhookDenied` / `WebhookTimeout`
+* **📖 What It Means:** A Validating or Mutating Admission Webhook (e.g. Kyverno, OPA Gatekeeper, Istio Injector, Cert-Manager) rejected the Pod creation request or timed out.
+* 🎭 **Real-World Scenario:** OPA Gatekeeper policy requires all pods to have a `cost-center` label. You deploy without this label, and API server rejects the deployment. Or the Webhook pod is down, causing all Pod creations to time out.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - Fix the policy violation in your YAML.
+  - If a dead webhook is blocking the entire cluster, temporarily remove it:
+    ```bash
+    kubectl delete validatingwebhookconfiguration <broken-webhook-name>
+    ```
+
+---
+
+## 🚪 8. Node Pressure, Eviction, Preemption & Teardown Errors
+
+---
+
+### 8.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)
+* **📖 What It Means:** The `kubelet` forcefully evicted the Pod from the worker node to prevent the host machine from freezing or crashing.
+* 🎭 **Real-World Scenario:** An unrotated application log file filled the node root filesystem to 96%. The kubelet triggers `DiskPressure` and begins evicting `BestEffort` pods.
+* 🔬 **Root Causes:**
+  - `DiskPressure`: Host filesystem usage > 85%.
+  - `MemoryPressure`: Host allocatable RAM exhausted.
+  - `PIDPressure`: Linux process table full (too many threads/processes).
+* 🔍 **How to Inspect:**
+  ```bash
   kubectl describe node <node-name>
+  kubectl describe pod <pod-name> | grep -i reason
   ```
-* 💡 **How to Fix:**
-  - Clean up node disk space (prune unused Docker/containerd images: `crictl rmi --prune`).
-  - Define resource requests and limits on all containers to ensure a `Guaranteed` or `Burstable` Quality of Service (QoS) tier.
-  - Set ephemeral storage limits in YAML:
+* 🛠️ **Step-by-Step Fix:**
+  1. Clean unused images: `crictl rmi --prune`.
+  2. Set `ephemeral-storage` requests and limits in Pod YAML:
+     ```yaml
+     resources:
+       limits:
+         ephemeral-storage: "2Gi"
+     ```
+  3. Clean up evicted pod records:
+     ```bash
+     kubectl get pods -A | grep Evicted | awk '{print $2 " -n " $1}' | xargs -r kubectl delete pod
+     ```
+
+---
+
+### 8.2 `Preempted` / `Preempting` (`PriorityClass`)
+* **📖 What It Means:** A high-priority Pod needed node resources, and Kubernetes evicted your lower-priority Pod to make room.
+* 🎭 **Real-World Scenario:** A critical payment-gateway pod with `priorityClassName: high-priority` scales up during peak traffic. Low-priority batch worker pods are preempted.
+* 🛠️ **Step-by-Step Fix:**
+  - Assign explicit `PriorityClass` objects to production workloads:
     ```yaml
-    resources:
-      limits:
-        ephemeral-storage: "2Gi"
+    apiVersion: scheduling.k8s.io/v1
+    kind: PriorityClass
+    metadata:
+      name: high-priority
+    value: 1000000
+    globalDefault: false
     ```
 
 ---
 
-### 8.2 `Preempting` / `Preempted`
-* **What It Means:** A higher-priority Pod (e.g., CoreDNS, Calico CNI, or a Pod with `PriorityClass: high-priority`) needed scheduling, but the cluster was full. Kubernetes evicted your lower-priority Pod to free up CPU/RAM.
-* 🎭 **Real Scenario:** A production payment service configured with high priority must scale up during a flash sale. Kubernetes evicts background data-processing worker pods with default priority.
-* 💡 **How to Fix:**
-  - Define `PriorityClass` objects for mission-critical workloads.
-  - Add more compute nodes to prevent resource starvation.
-
----
-
-### 8.3 `Terminating` (Stuck)
-* **What It Means:** You deleted a Pod (or a deployment updated), but the Pod remains stuck in `Terminating` state indefinitely.
-* 🎭 **Real Scenario:** Your Pod has a `finalizer` attached (e.g. from an operator or backup system like Velero), or a mounted NFS/CSI storage volume became unresponsive. The Linux kernel is stuck in an uninterruptible I/O wait state trying to unmount the volume.
-* **Root Causes:**
-  - Pod or associated PVC has unresolved **Finalizers**.
-  - Storage volume driver cannot safely unmount the disk.
-* 🔍 **How to Diagnose:**
+### 8.3 `Terminating` (Stuck on Finalizers or Unmount)
+* **📖 What It Means:** The Pod received a delete command, but cannot finish terminating because a **Finalizer** is waiting on an external controller, or the storage CSI driver cannot unmount the volume.
+* 🎭 **Real-World Scenario:** A storage driver crashed while unmounting an NFS volume. The Linux kernel process is stuck in Uninterruptible Sleep (D-state) waiting for I/O.
+* 🔍 **How to Inspect:**
   ```bash
-  kubectl get pod <pod-name> -o yaml | grep -A 5 finalizers
+  kubectl get pod <pod-name> -n <namespace> -o yaml | grep -A 5 "finalizers:"
   ```
-* 💡 **How to Fix:**
-  - Remove blocking finalizers (use with caution):
-    ```bash
-    kubectl patch pod <pod-name> -p '{"metadata":{"finalizers":null}}'
-    ```
-  - Force delete only if the underlying process is confirmed dead:
-    ```bash
-    kubectl delete pod <pod-name> --grace-period=0 --force
-    ```
+* 🛠️ **Step-by-Step Fix:**
+  1. Remove blocking finalizers:
+     ```bash
+     kubectl patch pod <pod-name> -n <namespace> -p '{"metadata":{"finalizers":null}}'
+     ```
+  2. Force deletion if the underlying container is already dead:
+     ```bash
+     kubectl delete pod <pod-name> -n <namespace> --grace-period=0 --force
+     ```
 
 ---
 
 ### 8.4 `Unknown` / `NodeLost` / `NodeNotReady`
-* **What It Means:** The Kubernetes Control Plane (`kube-controller-manager`) has stopped receiving heartbeats from the `kubelet` on that worker node.
-* 🎭 **Real Scenario:** A physical server lost power, a cloud VM instance was terminated by AWS Spot instance interruption, or the VPN / WireGuard network tunnel between nodes disconnected.
-* 💡 **How to Fix:**
-  - Check node status: `kubectl get nodes`.
-  - Check kubelet daemon on the host: `systemctl status kubelet`.
-  - Restart kubelet: `sudo systemctl restart kubelet`.
+* **📖 What It Means:** The Kubernetes control plane has lost contact with the worker node's `kubelet` for more than `node-monitor-grace-period` (default 40s).
+* 🎭 **Real-World Scenario:** A physical server lost power, a network switch failed, or the cloud provider abruptly stopped a spot instance.
+* 🛠️ **Step-by-Step Fix:**
+  - Check physical node / VM status in cloud console.
+  - Restart kubelet on the node: `sudo systemctl restart kubelet`.
 
 ---
 
-## 🔢 9. Container Exit Codes Reference Table
+## 🔢 9. Master Container Exit Codes & OS Signals Table
 
-When you run `kubectl describe pod <name>`, inspect the **Last State** section to find the **Exit Code**. 
+When inspecting `kubectl describe pod <name>`, check **Last State** -> **Exit Code**.
 
-> 💡 **Linux Signal Rule:** Any exit code greater than `128` represents termination caused by an OS signal:
+> 💡 **The Standard Linux Signal Formula:**  
 > $$\text{Exit Code} = 128 + \text{Signal Number}$$
-> *Example:* `137 = 128 + 9 (SIGKILL)` | `143 = 128 + 15 (SIGTERM)`
 
-| Exit Code | Signal / Name | Real Meaning & What Happened | Real-World Scenario & Beginner Fix |
+| Exit Code | Signal / Name | Real Meaning & Root Cause | Real-World Scenario & Exact Fix |
 | :---: | :---: | :--- | :--- |
-| **`0`** | `SUCCESS` | Container executed its task and completed successfully. | Normal for Jobs. If an ongoing web server exits with 0, ensure the app process runs in the foreground (`daemon off`). |
-| **`1`** | `GENERAL ERROR` | Container crashed due to an unhandled application error or uncaught exception. | Python `ZeroDivisionError`, Java `NullPointerException`, Node.js unhandled promise rejection. Check `kubectl logs <pod>`. |
-| **`2`** | `MISUSE OF SHELL` | Invalid argument or syntax error in Pod YAML `command:` or `args:`. | Typo in bash flags, missing closing quotes in command string (e.g. `sh -c "echo hello`). |
-| **`126`** | `CANNOT EXECUTE` | Command/binary found, but cannot be executed (Permission Denied). | `/entrypoint.sh` lacks execute permissions. Fix with `RUN chmod +x /entrypoint.sh` in your Dockerfile. |
-| **`127`** | `COMMAND NOT FOUND` | Binary specified in entrypoint/command does not exist inside the image. | You specified `command: ["bash"]` in a minimal `alpine` or `scratch` container image that only has `/bin/sh`. |
-| **`128`** | `INVALID EXIT ARG` | Container code called `exit()` with an invalid argument (outside 0-255). | Application logic bug in custom shutdown hook. |
-| **`130`** | `SIGINT (128+2)` | Process terminated by user Interrupt (equivalent to `Ctrl + C`). | Container received an interrupt signal from manual debug session. |
-| **`137`** | `SIGKILL (128+9)` | Container was forcefully killed by the OS kernel or Kubernetes (`kill -9`). | **1.** `OOMKilled` (exceeded memory limit).<br>**2.** Pod failed to shut down within `terminationGracePeriodSeconds` (default 30s) and was hard-killed. |
-| **`139`** | `SIGSEGV (128+11)` | Segmentation Fault (Attempted to access unauthorized memory space). | Low-level memory bug in C/C++/Go/Rust code or corrupted native C-bindings (e.g. `node-sass`, `grpc`). |
-| **`143`** | `SIGTERM (128+15)` | Container received graceful termination signal from Kubernetes. | Expected during Pod rollout/scaling down. Kubernetes asked the app to close connections and shut down cleanly. |
-| **`255`** | `EXIT OUT OF RANGE` | Container exited with an error code outside standard range or runtime error. | Entrypoint script failed with unknown status code. |
+| **`0`** | `SUCCESS` | Process completed all tasks and exited cleanly. | Normal for Jobs/CronJobs. If a web server exits with 0, ensure it runs in the foreground (`daemon off;`). |
+| **`1`** | `GENERAL ERROR` | Unhandled application error, exception, or missing config. | Python `KeyError`, Java `NullPointerException`, Node.js unhandled promise rejection. Inspect `kubectl logs --previous`. |
+| **`2`** | `MISUSE OF SHELL` | Invalid argument or syntax error in Pod YAML `command:` or `args:`. | Missing quotes, illegal flags in bash command string (e.g. `sh -c "echo hello`). |
+| **`126`** | `CANNOT EXECUTE` | Target binary/script was found, but lacks executable permissions (`chmod +x`). | Entrypoint script `/entrypoint.sh` lacks execution bit. Fix in Dockerfile: `RUN chmod +x /entrypoint.sh`. |
+| **`127`** | `COMMAND NOT FOUND` | Executable binary specified in command/entrypoint does not exist in image. | Specifying `command: ["bash"]` in an alpine or scratch image that only provides `/bin/sh`. |
+| **`128`** | `INVALID EXIT CODE` | Application called `exit(n)` with an invalid exit argument outside `0-255`. | Bug inside custom exit handling code. |
+| **`130`** | `SIGINT (128+2)` | Process terminated by interrupt signal (equivalent to `Ctrl + C`). | Container received an interrupt signal from manual debug session. |
+| **`134`** | `SIGABRT (128+6)` | Process aborted itself via `abort()` call. | Fatal assertion failure in C/C++/Go runtime or JVM crash. Check crash dump logs. |
+| **`137`** | `SIGKILL (128+9)` | Container forcefully terminated by Linux kernel or Kubelet (`kill -9`). | **1.** `OOMKilled` (exceeded memory limit). Increase `limits.memory`.<br>**2.** Container ignored `SIGTERM` past `terminationGracePeriodSeconds` (default 30s) and was hard-killed. |
+| **`139`** | `SIGSEGV (128+11)` | Segmentation Fault (Attempted to access invalid memory address). | Memory corruption or incompatible native C-bindings (e.g. `node-gyp`, `scipy`, `grpc`). |
+| **`143`** | `SIGTERM (128+15)` | Container received graceful termination signal from Kubernetes. | Normal during deployments or scaling down. Ensure application handles `SIGTERM` to close database connections gracefully. |
+| **`255`** | `EXIT OUT OF RANGE` | Entrypoint script failed with an unhandled exit code outside standard range. | Inspect container entrypoint script for uncaught script errors. |
 
 ---
 
-## 🗺️ 10. Step-by-Step Troubleshooting Flowchart
-
-Follow this systematic decision tree whenever you encounter an unhealthy Pod:
+## 🗺️ 10. The Ultimate 60-Second Troubleshooting Decision Tree
 
 ```
-                      [ Pod is not Ready / Running ]
-                                    │
-                                    ▼
-                     Run: `kubectl get pod <name>`
-                                    │
-    ┌───────────────────────────────┼───────────────────────────────┐
-    ▼                               ▼                               ▼
-[ Pending ]              [ ImagePullBackOff ]            [ CrashLoopBackOff ]
-    │                               │                               │
-    ├─► Check `kubectl describe`    ├─► Check image name/tag        ├─► Run `kubectl logs --previous`
-    ├─► Node capacity (CPU/RAM)?    ├─► Private repo? (Secret)      ├─► Exit Code 137? -> More RAM
-    └─► PVC Bound? Taints?          └─► Docker Hub Rate Limit?      └─► Exit Code 1? -> Fix code bug
-                                                                    
-    ┌───────────────────────────────┼───────────────────────────────┐
-    ▼                               ▼                               ▼
-[ Init:Error / Crash ]   [ ContainerCreating Stuck ]      [ Terminating Stuck ]
-    │                               │                               │
-    ├─► Check `kubectl logs -c init`├─► Volume attached to old node?├─► Check finalizers in YAML
-    └─► DB / migration ready?       └─► CNI IP pool exhausted?      └─► Check CSI / NFS storage driver
+                                [ Pod Is Not Healthy ]
+                                          │
+                                          ▼
+                         Run: `kubectl describe pod <name>`
+                                          │
+        ┌─────────────────────────────────┼─────────────────────────────────┐
+        ▼                                 ▼                                 ▼
+   [ SCHEDULE ERROR ]               [ IMAGE ERROR ]                  [ RUNTIME ERROR ]
+   • Pending                        • ErrImagePull                   • CrashLoopBackOff
+   • FailedScheduling               • ImagePullBackOff               • OOMKilled (137)
+   • UntoleratedTaint               • InvalidImageName               • Error (1)
+        │                                 │                                 │
+   ├─► Check CPU/RAM requests       ├─► Check tag spelling           ├─► Run `kubectl logs --previous`
+   ├─► Check Node Taints & Labels   ├─► Check imagePullSecrets       ├─► Exit 137? -> Increase RAM
+   └─► Check PVC status             └─► Docker Hub Rate Limit?       └─► Exit 1? -> Fix code bug
+                                                                     
+        ┌─────────────────────────────────┼─────────────────────────────────┐
+        ▼                                 ▼                                 ▼
+   [ STORAGE ERROR ]                [ PROBE ERROR ]                  [ TEARDOWN ERROR ]
+   • ContainerCreating (Stuck)      • Unhealthy (Liveness)           • Terminating (Stuck)
+   • FailedMount                    • ReadinessProbeFailed           • Evicted (DiskPressure)
+   • Multi-Attach error             • StartupProbeFailed             • NodeLost / Unknown
+        │                                 │                                 │
+   ├─► Check PVC/PV binding         ├─► Increase timeout/delays      ├─► Remove finalizers
+   ├─► Check AZ match (us-east-1a)  ├─► Check app CPU deadlock       ├─► Prune node images
+   └─► Check CSI driver logs        └─► Separate startupProbe        └─► Restart kubelet
 ```
 
 ---
 
-## 📚 Summary Cheat Sheet: Quick Fix Reference
+## 📚 Summary Cheat Sheet: Top 10 Immediate Actions
 
-| When you see... | First thing to check... | Immediate Fix Command |
+| If Pod Status Shows... | Look Here First... | Immediate Fix Command |
 | :--- | :--- | :--- |
-| **`Pending`** | CPU / RAM / Node Taints | `kubectl describe pod <name>` |
-| **`ImagePullBackOff`** | Image tag typo or registry secrets | `kubectl get secrets` & check registry |
+| **`Pending`** | Node capacity / Taints / PVC | `kubectl describe pod <pod>` |
+| **`ImagePullBackOff`** | Tag spelling / Registry Secret | `kubectl get secrets` & check repo |
 | **`CreateContainerConfigError`** | Missing ConfigMap or Secret | `kubectl get configmap,secret` |
-| **`CrashLoopBackOff`** | Application logs before crash | `kubectl logs <name> --previous` |
-| **`OOMKilled` (137)** | Container memory limit | Increase `resources.limits.memory` |
-| **`Unhealthy` (Probes)** | Application deadlock or slow response | Tune `initialDelaySeconds` / probe timeout |
-| **`Evicted`** | Worker node disk or memory usage | `kubectl describe node <node>` |
-| **`FailedMount`** | Cloud PV/PVC attachment & AZ | `kubectl get pvc,pv` |
+| **`CrashLoopBackOff`** | Previous crash logs | `kubectl logs <pod> --previous` |
+| **`OOMKilled` (137)** | Memory Limit vs Actual Usage | Increase `resources.limits.memory` |
+| **`Unhealthy` (Liveness)** | Probe timeout & app responsiveness | Increase `initialDelaySeconds` |
+| **`ReadinessProbeFailed`** | Backend dependencies (DB/Redis) | Check downstream service health |
+| **`ContainerCreating (Stuck)`** | Storage volume locks / CNI IP pool | `kubectl describe pod <pod>` |
+| **`Terminating (Stuck)`** | Blocking Finalizers | `kubectl patch pod <pod> -p '{"metadata":{"finalizers":null}}'` |
+| **`Evicted`** | Worker node disk/memory pressure | `kubectl describe node <node>` |
 
 ---
-*Created with ❤️ for Kubernetes developers and DevOps engineers.*
+*Created with ❤️ for Kubernetes developers, SREs, and DevOps engineers.*
