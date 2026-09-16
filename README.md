@@ -1,7 +1,7 @@
 # 🚀 The Master Kubernetes Pod Statuses, Errors & Exit Codes Encyclopedia
 
-> **The Definitive, All-Inclusive 360° Troubleshooting Encyclopedia for Kubernetes**  
-> Covering every known Kubernetes Pod Phase, Container State, Waiting/Terminated Reason, Admission Webhook Rejection, ResourceQuota Constraint, CNI/DNS Network Glitch, Storage/CSI Error, Probe Failure, Lifecycle Hook Error, Kernel Signal, and Container Exit Code with **Real-World Scenarios**, **Deep Root Causes**, **Exact Diagnostic Commands**, and **Step-by-Step Fixes**.
+> **The Definitive, All-Inclusive 360° Troubleshooting Encyclopedia for Kubernetes (v1.20 - v1.31+)**  
+> Covering every known Kubernetes Pod Phase, Container State, Waiting/Terminated Reason, Scheduling Gate, Admission Webhook Rejection, ResourceQuota Constraint, In-Place Resize State, CNI/DNS Network Glitch, Storage/CSI Error, Probe Failure, Lifecycle Hook Error, Kernel Signal, Batch Job Status, and Container Exit Code with **Real-World Scenarios**, **Deep Root Causes**, **Exact Diagnostic Commands**, and **Step-by-Step Fixes**.
 
 ---
 
@@ -12,15 +12,16 @@
 - [📑 1. Scheduling, Placement & Admission Control Errors](#-1-scheduling-placement--admission-control-errors)
   - [1.1 `Pending` (Generic Unscheduled)](#11-pending-generic-unscheduled)
   - [1.2 `FailedScheduling` (Insufficient CPU / Memory / GPU)](#12-failedscheduling-insufficient-cpu--memory--gpu)
-  - [1.3 `ResourceQuotaExceeded` (`Forbidden: exceeded quota`)](#13-resourcequotaexceeded-forbidden-exceeded-quota)
-  - [1.4 `LimitRangeViolation` (`Forbidden: minimum/maximum constraint`)](#14-limitrangeviolation-forbidden-minimummaximum-constraint)
-  - [1.5 `AdmissionWebhookDenied` / `WebhookTimeout`](#15-admissionwebhookdenied--webhooktimeout)
-  - [1.6 `MatchNodeSelector` / `NodeAffinity` Failure](#16-matchnodeselector--nodeaffinity-failure)
-  - [1.7 `UntoleratedTaint` (`NoSchedule` / `NoExecute`)](#17-untoleratedtaint-noschedule--noexecute)
-  - [1.8 `PodTopologySpreadFilter` / `PodAntiAffinity` Conflict](#18-podtopologyspreadfilter--podantiaffinity-conflict)
-  - [1.9 `VolumeZoneConflict` (Cross-AZ Disk Attachment)](#19-volumezoneconflict-cross-az-disk-attachment)
-  - [1.10 `HostPortConflict` (Port Already Bound on Node)](#110-hostportconflict-port-already-bound-on-node)
-  - [1.11 `MaxPodsExceeded` / `NodeUnschedulable` (`Cordoned`)](#111-maxpodsexceeded--nodeunschedulable-cordoned)
+  - [1.3 `SchedulingGated` (Kubernetes 1.26+ Dynamic Scheduling Gates)](#13-schedulinggated-kubernetes-126-dynamic-scheduling-gates)
+  - [1.4 `ResourceQuotaExceeded` (`Forbidden: exceeded quota`)](#14-resourcequotaexceeded-forbidden-exceeded-quota)
+  - [1.5 `LimitRangeViolation` (`Forbidden: minimum/maximum constraint`)](#15-limitrangeviolation-forbidden-minimummaximum-constraint)
+  - [1.6 `AdmissionWebhookDenied` / `WebhookTimeout`](#16-admissionwebhookdenied--webhooktimeout)
+  - [1.7 `MatchNodeSelector` / `NodeAffinity` Failure](#17-matchnodeselector--nodeaffinity-failure)
+  - [1.8 `UntoleratedTaint` (`NoSchedule` / `NoExecute`)](#18-untoleratedtaint-noschedule--noexecute)
+  - [1.9 `PodTopologySpreadFilter` / `PodAntiAffinity` Conflict](#19-podtopologyspreadfilter--podantiaffinity-conflict)
+  - [1.10 `VolumeZoneConflict` (Cross-AZ Disk Attachment)](#110-volumezoneconflict-cross-az-disk-attachment)
+  - [1.11 `HostPortConflict` (Port Already Bound on Node)](#111-hostportconflict-port-already-bound-on-node)
+  - [1.12 `MaxPodsExceeded` / `NodeUnschedulable` (`Cordoned`)](#112-maxpodsexceeded--nodeunschedulable-cordoned)
 - [🌐 2. Pod Sandbox & CNI Network Initialization Errors](#-2-pod-sandbox--cni-network-initialization-errors)
   - [2.1 `PodInitializing`](#21-podinitializing)
   - [2.2 `CreatePodSandboxError` / `FailedCreatePodSandBox`](#22-createpodsandboxerror--failedcreatepodsandbox)
@@ -58,14 +59,16 @@
   - [6.3 `PersistentVolumeClaimNotBound` / `ProvisioningFailed`](#63-persistentvolumeclaimnotbound--provisioningfailed)
   - [6.4 `Multi-Attach error for volume` (ReadWriteOnce Conflict)](#64-multi-attach-error-for-volume-readwriteonce-conflict)
   - [6.5 `VolumeResizeFailed` / `FileSystemResizeFailed`](#65-volumeresizefailed--filesystemresizefailed)
-  - [6.6 `NFSStaleFileHandle` / `StorageNodeDown`](#66-nfsstalefilehandle--storagenodedown)
+  - [6.6 `VolumeConditionAbnormal` (CSI Volume Health Monitoring)](#66-volumeconditionabnormal-csi-volume-health-monitoring)
+  - [6.7 `NFSStaleFileHandle` / `StorageNodeDown`](#67-nfsstalefilehandle--storagenodedown)
 - [🔄 7. Init Containers, Sidecars & Ephemeral Debuggers](#-7-init-containers-sidecars--ephemeral-debuggers)
   - [7.1 `Init:0/N` / `Init:1/N` (Stuck Waiting on Dependencies)](#71-init0n--init1n-stuck-waiting-on-dependencies)
   - [7.2 `Init:CrashLoopBackOff` & `Init:Error`](#72-initcrashloopbackoff--initerror)
   - [7.3 `Init:ImagePullBackOff`](#73-initimagepullbackoff)
-  - [7.4 `Init:CreateContainerConfigError`](#74-initcreatecontainerconfigerror)
-  - [7.5 `ServiceMeshSidecarNotReady` (Istio / Linkerd Startup Delay)](#75-servicemeshsidecarnotready-istio--linkerd-startup-delay)
-  - [7.6 `EphemeralContainersFailed` / `EphemeralContainerNotReady`](#76-ephemeralcontainersfailed--ephemeralcontainernotready)
+  - [7.4 `Init:CreateContainerConfigError` & `Init:CreateContainerError`](#74-initcreatecontainerconfigerror--initcreatecontainererror)
+  - [7.5 `Init:OOMKilled` (Exit Code 137 in Init Phase)](#75-initoomkilled-exit-code-137-in-init-phase)
+  - [7.6 `ServiceMeshSidecarNotReady` (Istio / Linkerd Startup Delay)](#76-servicemeshsidecarnotready-istio--linkerd-startup-delay)
+  - [7.7 `EphemeralContainersFailed` / `EphemeralContainerNotReady`](#77-ephemeralcontainersfailed--ephemeralcontainernotready)
 - [💥 8. Runtime Crashes, Memory & Resource Starvation](#-8-runtime-crashes-memory--resource-starvation)
   - [8.1 `Error` (Non-Zero Exit Code)](#81-error-non-zero-exit-code)
   - [8.2 `CrashLoopBackOff`](#82-crashloopbackoff)
@@ -74,28 +77,32 @@
   - [8.5 `ContainerStatusUnknown`](#85-containerstatusunknown)
   - [8.6 `DeadlineExceeded` (`activeDeadlineSeconds` Reached)](#86-deadlineexceeded-activedeadlineseconds-reached)
   - [8.7 `BackoffLimitExceeded` (Batch Job Failure)](#87-backofflimitexceeded-batch-job-failure)
-- [🏥 9. Health Checks (Probes) & Custom Readiness Gates](#-9-health-checks-probes--custom-readiness-gates)
-  - [9.1 `Unhealthy` (Liveness Probe Failed)](#91-unhealthy-liveness-probe-failed)
-  - [9.2 `ReadinessProbeFailed` (Traffic Cut Off)](#92-readinessprobefailed-traffic-cut-off)
-  - [9.3 `StartupProbeFailed` (Slow Boot Timeout)](#93-startupprobefailed-slow-boot-timeout)
-  - [9.4 `ExecProbeTimeout` / `ProbeWarning`](#94-execprobetimeout--probewarning)
-  - [9.5 `ReadinessGatesFailed` / `ReadinessGatesNotReady` (Cloud Load Balancer Target Group)](#95-readinessgatesfailed--readinessgatesnotready-cloud-load-balancer-target-group)
-- [🌐 10. DNS, CoreDNS & Cluster Networking Failures](#-10-dns-coredns--cluster-networking-failures)
-  - [10.1 `CoreDNS CrashLoopBackOff` (Forwarding Loop Detected)](#101-coredns-crashloopbackoff-forwarding-loop-detected)
-  - [10.2 `NameResolutionFailure` (`ndots:5` Latency & NXDOMAIN)](#102-nameresolutionfailure-ndots5-latency--nxdomain)
-  - [10.3 `ServiceEndpointsMissing` (No Pods Match Selector)](#103-serviceendpointsmissing-no-pods-match-selector)
-- [🚪 11. Node Pressure, Eviction, Preemption & Teardown Errors](#-11-node-pressure-eviction-preemption--teardown-errors)
-  - [11.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)](#111-evicted-diskpressure-memorypressure-pidpressure)
-  - [11.2 `Evicted` (`DisruptionTarget` / Node Drain)](#112-evicted-disruptiontarget--node-drain)
-  - [11.3 `TaintManagerEviction` (`NoExecute` Taint Applied)](#113-taintmanagereviction-noexecute-taint-applied)
-  - [11.4 `TerminatedDueToNodeShutdown` (Graceful Node Shutdown)](#114-terminatedduetonodeshutdown-graceful-node-shutdown)
-  - [11.5 `Preempted` / `Preempting` (`PriorityClass`)](#115-preempted--preempting-priorityclass)
-  - [11.6 `Terminating` (Stuck on Finalizers or Storage Unmount)](#116-terminating-stuck-on-finalizers-or-storage-unmount)
-  - [11.7 `GracefulTerminationTimeout` (App Ignored SIGTERM)](#117-gracefulterminationtimeout-app-ignored-sigterm)
-  - [11.8 `Unknown` / `NodeLost` / `NodeNotReady`](#118-unknown--nodelost--nodenotready)
-- [🔢 12. Master Container Exit Codes & OS Signals Table](#-12-master-container-exit-codes--os-signals-table)
-- [🗺️ 13. The Ultimate 60-Second Diagnostic Decision Tree](#️-13-the-ultimate-60-second-diagnostic-decision-tree)
-- [📋 14. Master Quick Reference Action Matrix](#-14-master-quick-reference-action-matrix)
+  - [8.8 `JobSuspended` (`spec.suspend: true`)](#88-jobsuspended-specsuspend-true)
+- [🔧 9. In-Place Pod Resizing & Dynamic Resource Allocation (K8s 1.27+)](#-9-in-place-pod-resizing--dynamic-resource-allocation-k8s-127)
+  - [9.1 In-Place Resize States: `Proposed`, `InProgress`, `Deferred`, `Infeasible`](#91-in-place-resize-states-proposed-inprogress-deferred-infeasible)
+  - [9.2 `DynamicResourceAllocationPending` (DRA Hardware Claims)](#92-dynamicresourceallocationpending-dra-hardware-claims)
+- [🏥 10. Health Checks (Probes) & Custom Readiness Gates](#-10-health-checks-probes--custom-readiness-gates)
+  - [10.1 `Unhealthy` (Liveness Probe Failed)](#101-unhealthy-liveness-probe-failed)
+  - [10.2 `ReadinessProbeFailed` (Traffic Cut Off)](#102-readinessprobefailed-traffic-cut-off)
+  - [10.3 `StartupProbeFailed` (Slow Boot Timeout)](#103-startupprobefailed-slow-boot-timeout)
+  - [10.4 `ExecProbeTimeout` / `ProbeWarning`](#104-execprobetimeout--probewarning)
+  - [10.5 `ReadinessGatesFailed` / `ReadinessGatesNotReady` (Cloud Load Balancers)](#105-readinessgatesfailed--readinessgatesnotready-cloud-load-balancers)
+- [🌐 11. DNS, CoreDNS & Cluster Networking Failures](#-11-dns-coredns--cluster-networking-failures)
+  - [11.1 `CoreDNS CrashLoopBackOff` (Forwarding Loop Detected)](#111-coredns-crashloopbackoff-forwarding-loop-detected)
+  - [11.2 `NameResolutionFailure` (`ndots:5` Latency & NXDOMAIN)](#112-nameresolutionfailure-ndots5-latency--nxdomain)
+  - [11.3 `ServiceEndpointsMissing` (No Pods Match Selector)](#113-serviceendpointsmissing-no-pods-match-selector)
+- [🚪 12. Node Pressure, Eviction, Preemption & Teardown Errors](#-12-node-pressure-eviction-preemption--teardown-errors)
+  - [12.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)](#121-evicted-diskpressure-memorypressure-pidpressure)
+  - [12.2 `Evicted` (`DisruptionTarget` / Node Drain)](#122-evicted-disruptiontarget--node-drain)
+  - [12.3 `TaintManagerEviction` (`NoExecute` Taint Applied)](#123-taintmanagereviction-noexecute-taint-applied)
+  - [12.4 `TerminatedDueToNodeShutdown` (Graceful Node Shutdown)](#124-terminatedduetonodeshutdown-graceful-node-shutdown)
+  - [12.5 `Preempted` / `Preempting` (`PriorityClass`)](#125-preempted--preempting-priorityclass)
+  - [12.6 `Terminating` (Stuck on Finalizers or Storage Unmount)](#126-terminating-stuck-on-finalizers-or-storage-unmount)
+  - [12.7 `GracefulTerminationTimeout` (App Ignored SIGTERM)](#127-gracefulterminationtimeout-app-ignored-sigterm)
+  - [12.8 `Unknown` / `NodeLost` / `NodeNotReady`](#128-unknown--nodelost--nodenotready)
+- [🔢 13. Master Container Exit Codes & OS Signals Table](#-13-master-container-exit-codes--os-signals-table)
+- [🗺️ 14. The Ultimate 60-Second Diagnostic Decision Tree](#️-14-the-ultimate-60-second-diagnostic-decision-tree)
+- [📋 15. Master Quick Reference Action Matrix](#-15-master-quick-reference-action-matrix)
 
 ---
 
@@ -106,7 +113,7 @@ Understanding Kubernetes troubleshooting requires distinguishing between the **3
 ```
 Layer 1: Pod Phase (High-level summary: Pending, Running, Succeeded, Failed, Unknown)
    │
-   ├── Layer 2: Pod Conditions (Boolean health gates: PodScheduled, Initialized, ContainersReady, Ready)
+   ├── Layer 2: Pod Conditions (Boolean health gates: PodScheduled, Initialized, ContainersReady, Ready, DisruptionTarget)
    │
    └── Layer 3: Container States (Low-level status: Waiting, Running, Terminated + Specific Reasons)
 ```
@@ -236,7 +243,22 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.3 `ResourceQuotaExceeded` (`Forbidden: exceeded quota`)
+### 1.3 `SchedulingGated` (Kubernetes 1.26+ Dynamic Scheduling Gates)
+* **📖 What It Means:** The Pod is intentionally placed in a waiting gate by an external controller (e.g. Karpenter node autoscaler, Dynamic Resource Allocation, or custom admission controllers) before the standard scheduler is permitted to place it.
+* 🎭 **Real-World Scenario:** Karpenter detects that a Pod requires a special instance type. It attaches a scheduling gate `spec.schedulingGates: [{ name: "karpenter.sh/provisioning" }]` to the Pod so `kube-scheduler` ignores it while Karpenter provisions a new AWS EC2 VM. Once the VM boots, Karpenter removes the gate.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl get pod <pod-name> -o yaml | grep -A 3 "schedulingGates:"
+  ```
+* 🛠️ **Step-by-Step Fix:**
+  - If a gate is stuck because an external controller failed:
+    ```bash
+    kubectl patch pod <pod-name> -p '{"spec":{"schedulingGates":[]}}'
+    ```
+
+---
+
+### 1.4 `ResourceQuotaExceeded` (`Forbidden: exceeded quota`)
 * **📖 What It Means:** The Kubernetes Admission Controller rejected the Pod creation because the namespace's cumulative `ResourceQuota` limit has been exceeded.
 * 🎭 **Real-World Scenario:** The DevOps team set a namespace quota of `requests.cpu: 10`. You deploy a new deployment with 4 replicas requesting `3 CPU` each (Total: 12 CPU). The API server blocks the Pod creation immediately: `pods "api-xxx" is forbidden: exceeded quota: compute-quota, requested: requests.cpu=3, used: requests.cpu=8, limited: requests.cpu=10`.
 * 🔍 **How to Inspect:**
@@ -259,7 +281,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.4 `LimitRangeViolation` (`Forbidden: minimum/maximum constraint`)
+### 1.5 `LimitRangeViolation` (`Forbidden: minimum/maximum constraint`)
 * **📖 What It Means:** The container resource specifications violate the namespace's `LimitRange` rules (e.g., minimum CPU, maximum memory, or ratio between request and limit).
 * 🎭 **Real-World Scenario:** The namespace specifies a `LimitRange` stating no single container may request more than `4Gi` memory. You specify `limits.memory: 8Gi`. The API server rejects Pod creation.
 * 🔍 **How to Inspect:**
@@ -270,7 +292,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.5 `AdmissionWebhookDenied` / `WebhookTimeout`
+### 1.6 `AdmissionWebhookDenied` / `WebhookTimeout`
 * **📖 What It Means:** A Validating or Mutating Admission Webhook (e.g., Kyverno, OPA Gatekeeper, Istio Sidecar Injector, Cert-Manager) rejected the Pod creation request or timed out trying to reach the webhook server.
 * 🎭 **Real-World Scenario:** OPA Gatekeeper policy mandates that all production Pods must have a `cost-center` and `owner` label. You deploy without these labels, and API server returns: `admission webhook "validation.gatekeeper.sh" denied the request: [mandatory-labels] You must provide label <cost-center>`.
 * 🔍 **How to Inspect:**
@@ -287,7 +309,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.6 `MatchNodeSelector` / `NodeAffinity` Failure
+### 1.7 `MatchNodeSelector` / `NodeAffinity` Failure
 * **📖 What It Means:** The Pod explicitly specifies that it must run on a node with particular key-value labels, but no active node has those labels.
 * 🎭 **Real-World Scenario:** You deploy a Redis cache with `nodeSelector: { disktype: ssd, environment: production }`. In your new staging cluster, the nodes were labeled `env: prod` and `storage: nvme`. Because the labels do not match character-for-character, the scheduler rejects all nodes.
 * 🔬 **Root Causes:**
@@ -307,7 +329,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.7 `UntoleratedTaint` (`NoSchedule` / `NoExecute`)
+### 1.8 `UntoleratedTaint` (`NoSchedule` / `NoExecute`)
 * **📖 What It Means:** Worker nodes have a **Taint** (a repellent barrier) applied to reserve them for special workloads, and your Pod lacks the matching **Toleration** (key/pass).
 * 🎭 **Real-World Scenario:** Master/Control-plane nodes are tainted with `node-role.kubernetes.io/control-plane:NoSchedule`. If all worker nodes crash, your pods cannot be scheduled onto the master nodes because they lack tolerations.
 * 🔬 **Root Causes:**
@@ -329,7 +351,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.8 `PodTopologySpreadFilter` / `PodAntiAffinity` Conflict
+### 1.9 `PodTopologySpreadFilter` / `PodAntiAffinity` Conflict
 * **📖 What It Means:** The scheduler cannot place the Pod without violating high-availability spreading rules (e.g. "Do not place two replicas in the same Availability Zone or on the same Node").
 * 🎭 **Real-World Scenario:** You configure `podAntiAffinity` with `requiredDuringScheduling` so that no two database replicas run on the same physical host. You request 4 replicas, but your cluster only has 3 worker nodes. The 4th replica stays `Pending`.
 * 🔬 **Root Causes:**
@@ -346,7 +368,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.9 `VolumeZoneConflict` (Cross-AZ Disk Attachment)
+### 1.10 `VolumeZoneConflict` (Cross-AZ Disk Attachment)
 * **📖 What It Means:** The Pod's PersistentVolume is locked in Availability Zone `A`, but the scheduler attempted to place the Pod onto a node in Availability Zone `B`.
 * 🎭 **Real-World Scenario:** In AWS EKS, an EBS volume PV was created in `us-east-1a`. All worker nodes in `us-east-1a` are currently at 100% capacity. The scheduler tries to place the pod on a node in `us-east-1b`, but EBS volumes cannot cross availability zone boundaries.
 * 🔬 **Root Causes:**
@@ -369,7 +391,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.10 `HostPortConflict` (Port Already Bound on Node)
+### 1.11 `HostPortConflict` (Port Already Bound on Node)
 * **📖 What It Means:** The Pod spec defines `hostPort: 80`, but another Pod running on that specific node is already binding port 80 of the host network.
 * 🎭 **Real-World Scenario:** You deploy an Ingress Controller with 3 replicas requesting `hostPort: 80` on a 2-node cluster. The 3rd replica cannot be scheduled because both nodes already have port 80 occupied.
 * 🛠️ **Step-by-Step Fix:**
@@ -378,7 +400,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 1.11 `MaxPodsExceeded` / `NodeUnschedulable` (`Cordoned`)
+### 1.12 `MaxPodsExceeded` / `NodeUnschedulable` (`Cordoned`)
 * **📖 What It Means:**
   - `MaxPodsExceeded`: The worker node has reached its hard limit for running pods (default is 110 pods per node).
   - `NodeUnschedulable`: The node has been marked `cordoned` (`SchedulingDisabled`) during maintenance.
@@ -809,7 +831,17 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 6.6 `NFSStaleFileHandle` / `StorageNodeDown`
+### 6.6 `VolumeConditionAbnormal` (CSI Volume Health Monitoring)
+* **📖 What It Means:** The CSI Volume Health Monitor detected physical storage faults (e.g. disk sector corruption, storage array I/O degradation) on the underlying block device.
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl describe pvc <pvc-name>
+  ```
+* 🛠️ **Step-by-Step Fix:** Check the storage backend array status or migrate the workload to a new PVC snapshot.
+
+---
+
+### 6.7 `NFSStaleFileHandle` / `StorageNodeDown`
 * **📖 What It Means:** An NFS server or Ceph cluster restarted, causing file handles on worker nodes to become stale. Pod read/write operations block forever in uninterruptible sleep (D-state).
 * 🛠️ **Step-by-Step Fix:** Unmount the stale mount on the worker node with `sudo umount -f -l <mountpoint>`.
 
@@ -854,13 +886,19 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 7.4 `Init:CreateContainerConfigError`
-* **📖 What It Means:** The Init Container references a ConfigMap or Secret that does not exist.
+### 7.4 `Init:CreateContainerConfigError` & `Init:CreateContainerError`
+* **📖 What It Means:** The Init Container references a ConfigMap, Secret, or volume mount path that is missing or conflicting.
 * 🛠️ **Step-by-Step Fix:** Verify all ConfigMaps and Secrets referenced by the Init Container exist in the namespace.
 
 ---
 
-### 7.5 `ServiceMeshSidecarNotReady` (Istio / Linkerd Startup Delay)
+### 7.5 `Init:OOMKilled` (Exit Code 137 in Init Phase)
+* **📖 What It Means:** An Init Container performing data decompression, asset compilation, or DB migrations exceeded its memory limit and was killed by the kernel.
+* 🛠️ **Step-by-Step Fix:** Increase `resources.limits.memory` specifically on the `initContainers` block.
+
+---
+
+### 7.6 `ServiceMeshSidecarNotReady` (Istio / Linkerd Startup Delay)
 * **📖 What It Means:** In clusters with Service Mesh auto-injection (Istio / Linkerd / Consul), the main app container starts and attempts outbound network requests before the Envoy sidecar proxy is fully initialized, causing immediate network failures.
 * 🎭 **Real-World Scenario:** A Spring Boot app boots up, tries to connect to PostgreSQL immediately on startup, and fails with `Connection refused` because Istio Envoy proxy (`istio-proxy`) is still booting.
 * 🛠️ **Step-by-Step Fix:**
@@ -869,7 +907,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 7.6 `EphemeralContainersFailed` / `EphemeralContainerNotReady`
+### 7.7 `EphemeralContainersFailed` / `EphemeralContainerNotReady`
 * **📖 What It Means:** An interactive debugging container launched via `kubectl debug` failed to attach or crashed.
 * 🛠️ **Step-by-Step Fix:** Check the image name used in `kubectl debug` (e.g. `nicolaka/netshoot` or `busybox`).
 
@@ -1005,11 +1043,41 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-## 🏥 9. Health Checks (Probes) & Custom Readiness Gates
+### 8.8 `JobSuspended` (`spec.suspend: true`)
+* **📖 What It Means:** The Kubernetes Job has been placed on hold. No pods will be created until `spec.suspend` is set back to `false`.
+* 🛠️ **Step-by-Step Fix:** Resume the job with `kubectl patch job <job-name> -p '{"spec":{"suspend":false}}'`.
 
 ---
 
-### 9.1 `Unhealthy` (Liveness Probe Failed)
+## 🔧 9. In-Place Pod Resizing & Dynamic Resource Allocation (K8s 1.27+)
+
+---
+
+### 9.1 In-Place Resize States: `Proposed`, `InProgress`, `Deferred`, `Infeasible`
+* **📖 What It Means:** In Kubernetes 1.27+, you can resize CPU/Memory of a live running container without restarting the Pod. The `status.resize` field indicates the state:
+  - **`Proposed`**: The resize request was acknowledged by the API server.
+  - **`InProgress`**: The Kubelet is currently adjusting cgroups v2 resource limits on the node.
+  - **`Deferred`**: The requested CPU/RAM is currently unavailable on this node; Kubelet will apply it as soon as other pods free capacity.
+  - **`Infeasible`**: The node cannot physically satisfy the resize request (e.g. asking for 64 GB on a 32 GB node).
+* 🔍 **How to Inspect:**
+  ```bash
+  kubectl get pod <pod-name> -o jsonpath='{.status.containerStatuses[*].allocatedResources}'
+  ```
+* 🛠️ **Step-by-Step Fix:** If `Infeasible`, adjust requests or recreate the Pod to allow scheduling on a larger worker node.
+
+---
+
+### 9.2 `DynamicResourceAllocationPending` (DRA Hardware Claims)
+* **📖 What It Means:** The Pod references a Dynamic Resource Allocation (DRA) `ResourceClaim` (e.g. customized FPGA, specialized TPU, or dynamic GPU slices), but the DRA driver has not yet bound the resource.
+* 🛠️ **Step-by-Step Fix:** Check the health of your DRA driver daemonset and verify `ResourceClaimParameters` CRDs.
+
+---
+
+## 🏥 10. Health Checks (Probes) & Custom Readiness Gates
+
+---
+
+### 10.1 `Unhealthy` (Liveness Probe Failed)
 * **📖 What It Means:** The Liveness Probe failed consecutive checks equal to `failureThreshold`. Kubernetes assumes the process is deadlocked or permanently broken and **kills & restarts the container**.
 * 🎭 **Real-World Scenario:** A backend API experiences a database thread pool exhaustion. The `/healthz` endpoint blocks trying to acquire a DB connection and times out after 3 seconds. Kubernetes restarts the container repeatedly.
 * 🔍 **How to Inspect:**
@@ -1032,7 +1100,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 9.2 `ReadinessProbeFailed` (Traffic Cut Off)
+### 10.2 `ReadinessProbeFailed` (Traffic Cut Off)
 * **📖 What It Means:** The Readiness Probe failed. The container is **NOT restarted**, but Kubernetes immediately removes the Pod IP from the Service endpoints load balancer so users receive no errors.
 * 🎭 **Real-World Scenario:** An e-commerce API is warming up local caches. During this 20-second warmup, the `/ready` probe returns HTTP 503. Kubernetes routes user traffic only to existing healthy replicas.
 * 🔍 **How to Inspect:**
@@ -1046,7 +1114,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 9.3 `StartupProbeFailed` (Slow Boot Timeout)
+### 10.3 `StartupProbeFailed` (Slow Boot Timeout)
 * **📖 What It Means:** The container failed to respond successfully to the Startup Probe within the total allotted startup window. Kubernetes restarts the container.
 * 🎭 **Real-World Scenario:** A large Java Spring Boot monolithic app takes 110 seconds to start on cold boot. The liveness probe starts checking after 30 seconds and kills the app before it ever finishes booting.
 * 🛠️ **Step-by-Step Fix:**
@@ -1062,13 +1130,13 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 9.4 `ExecProbeTimeout` / `ProbeWarning`
+### 10.4 `ExecProbeTimeout` / `ProbeWarning`
 * **📖 What It Means:** A probe using `exec: command: [...]` hung inside the container because the command process became deadlocked or took longer than `timeoutSeconds`.
 * 🛠️ **Step-by-Step Fix:** Optimize the probe script or increase `timeoutSeconds`.
 
 ---
 
-### 9.5 `ReadinessGatesFailed` / `ReadinessGatesNotReady` (Cloud Load Balancer Target Group)
+### 10.5 `ReadinessGatesFailed` / `ReadinessGatesNotReady` (Cloud Load Balancers)
 * **📖 What It Means:** The Pod's containers are ready, but an external cloud controller (e.g. AWS Load Balancer Controller registering target into ALB Target Group) has not marked the custom readiness gate as `True`.
 * 🎭 **Real-World Scenario:** AWS ALB Target Group health check takes 45 seconds to verify target health. Rolling updates pause until AWS ALB responds with HTTP 200.
 * 🔍 **How to Inspect:**
@@ -1079,11 +1147,11 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-## 🌐 10. DNS, CoreDNS & Cluster Networking Failures
+## 🌐 11. DNS, CoreDNS & Cluster Networking Failures
 
 ---
 
-### 10.1 `CoreDNS CrashLoopBackOff` (Forwarding Loop Detected)
+### 11.1 `CoreDNS CrashLoopBackOff` (Forwarding Loop Detected)
 * **📖 What It Means:** The cluster DNS resolver (`coredns`) is crashing, causing all pods to fail when resolving domain names or service names (`mysql-service.default.svc.cluster.local`).
 * 🎭 **Real-World Scenario:** The host node `/etc/resolv.conf` contains an upstream nameserver `127.0.0.53` (systemd-resolved loop). CoreDNS inherits this and detects a forwarding loop, crashing immediately to prevent infinite DNS loops.
 * 🔍 **How to Inspect:**
@@ -1096,7 +1164,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 10.2 `NameResolutionFailure` (`ndots:5` Latency & NXDOMAIN)
+### 11.2 `NameResolutionFailure` (`ndots:5` Latency & NXDOMAIN)
 * **📖 What It Means:** Container application fails with `getaddrinfo EAI_AGAIN` or DNS timeouts when resolving external domains like `api.stripe.com`.
 * 🎭 **Real-World Scenario:** Default Kubernetes DNS config specifies `ndots:5`. Resolving `api.stripe.com` generates 5 recursive queries (`api.stripe.com.default.svc.cluster.local`, etc.), flooding CoreDNS and causing random timeouts.
 * 🛠️ **Step-by-Step Fix:**
@@ -1105,18 +1173,18 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 10.3 `ServiceEndpointsMissing` (No Pods Match Selector)
+### 11.3 `ServiceEndpointsMissing` (No Pods Match Selector)
 * **📖 What It Means:** Traffic to a Kubernetes Service fails with connection timeouts because `kubectl get endpoints <service>` is `<none>`.
 * 🎭 **Real-World Scenario:** Your Service has `selector: { app: api }`, but your Deployment Pod template has `labels: { app: api-service }`. The selector fails to match any pods.
 * 🛠️ **Step-by-Step Fix:** Align the Service `spec.selector` labels with the Pod `metadata.labels`.
 
 ---
 
-## 🚪 11. Node Pressure, Eviction, Preemption & Teardown Errors
+## 🚪 12. Node Pressure, Eviction, Preemption & Teardown Errors
 
 ---
 
-### 11.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)
+### 12.1 `Evicted` (`DiskPressure`, `MemoryPressure`, `PIDPressure`)
 * **📖 What It Means:** The `kubelet` forcefully evicted the Pod from the worker node to prevent the host machine from freezing or crashing.
 * 🎭 **Real-World Scenario:** An unrotated application log file filled the node root filesystem to 96%. The kubelet triggers `DiskPressure` and begins evicting `BestEffort` pods.
 * 🔬 **Root Causes:**
@@ -1143,13 +1211,13 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 11.2 `Evicted` (`DisruptionTarget` / Node Drain)
+### 12.2 `Evicted` (`DisruptionTarget` / Node Drain)
 * **📖 What It Means:** The Pod was terminated because the worker node is being decommissioned or upgraded via `kubectl drain`.
 * 🛠️ **Step-by-Step Fix:** Normal behavior during cluster maintenance. Ensure Deployments have `replicas >= 2` and a `PodDisruptionBudget` (PDB) is defined.
 
 ---
 
-### 11.3 `TaintManagerEviction` (`NoExecute` Taint Applied)
+### 12.3 `TaintManagerEviction` (`NoExecute` Taint Applied)
 * **📖 What It Means:** A `NoExecute` taint was added to the node, and the Pod's `tolerationSeconds` timer expired, causing the TaintManager controller to evict the Pod.
 * 🛠️ **Step-by-Step Fix:** Add toleration with higher `tolerationSeconds` if the pod must survive brief network partitions:
   ```yaml
@@ -1162,13 +1230,13 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 11.4 `TerminatedDueToNodeShutdown` (Graceful Node Shutdown)
+### 12.4 `TerminatedDueToNodeShutdown` (Graceful Node Shutdown)
 * **📖 What It Means:** The host operating system received a shutdown/reboot signal (`systemd-inhibit`), and Kubelet terminated pods gracefully according to priority.
 * 🛠️ **Step-by-Step Fix:** Normal during server reboots. Workloads will automatically reschedule on other active nodes.
 
 ---
 
-### 11.5 `Preempted` / `Preempting` (`PriorityClass`)
+### 12.5 `Preempted` / `Preempting` (`PriorityClass`)
 * **📖 What It Means:** A high-priority Pod needed node resources, and Kubernetes evicted your lower-priority Pod to make room.
 * 🎭 **Real-World Scenario:** A critical payment-gateway pod with `priorityClassName: high-priority` scales up during peak traffic. Low-priority batch worker pods are preempted.
 * 🛠️ **Step-by-Step Fix:**
@@ -1184,7 +1252,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 11.6 `Terminating` (Stuck on Finalizers or Storage Unmount)
+### 12.6 `Terminating` (Stuck on Finalizers or Storage Unmount)
 * **📖 What It Means:** The Pod received a delete command, but cannot finish terminating because a **Finalizer** is waiting on an external controller, or the storage CSI driver cannot unmount the volume.
 * 🎭 **Real-World Scenario:** A storage driver crashed while unmounting an NFS volume. The Linux kernel process is stuck in Uninterruptible Sleep (D-state) waiting for I/O.
 * 🔍 **How to Inspect:**
@@ -1203,7 +1271,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 11.7 `GracefulTerminationTimeout` (App Ignored SIGTERM)
+### 12.7 `GracefulTerminationTimeout` (App Ignored SIGTERM)
 * **📖 What It Means:** The container was sent a `SIGTERM` signal during shutdown, but failed to exit before `terminationGracePeriodSeconds` (default 30s) elapsed. The Kubelet sent a forceful `SIGKILL` (Exit 137).
 * 🛠️ **Step-by-Step Fix:**
   - Add `SIGTERM` signal listeners in application code to close active connections promptly:
@@ -1216,7 +1284,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-### 11.8 `Unknown` / `NodeLost` / `NodeNotReady`
+### 12.8 `Unknown` / `NodeLost` / `NodeNotReady`
 * **📖 What It Means:** The Kubernetes control plane has lost contact with the worker node's `kubelet` for more than `node-monitor-grace-period` (default 40s).
 * 🎭 **Real-World Scenario:** A physical server lost power, a network switch failed, or the cloud provider abruptly stopped a spot instance.
 * 🛠️ **Step-by-Step Fix:**
@@ -1225,7 +1293,7 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-## 🔢 12. Master Container Exit Codes & OS Signals Table
+## 🔢 13. Master Container Exit Codes & OS Signals Table
 
 When inspecting `kubectl describe pod <name>`, inspect the **Last State** section to find the **Exit Code**.
 
@@ -1249,7 +1317,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 
 ---
 
-## 🗺️ 13. The Ultimate 60-Second Diagnostic Decision Tree
+## 🗺️ 14. The Ultimate 60-Second Diagnostic Decision Tree
 
 ```
                                 [ Pod Is Not Healthy ]
@@ -1262,8 +1330,8 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
    [ SCHEDULE & ADMISSION ]         [ IMAGE & CRI ERROR ]            [ RUNTIME ERROR ]
    • Pending                        • ErrImagePull                   • CrashLoopBackOff
    • FailedScheduling               • ImagePullBackOff               • OOMKilled (137)
-   • ResourceQuotaExceeded          • InvalidImageName               • Error (1)
-   • WebhookDenied                  • exec format error (Arch)       • Completed (0)
+   • SchedulingGated                • InvalidImageName               • Error (1)
+   • ResourceQuotaExceeded          • exec format error (Arch)       • Completed (0)
         │                                 │                                 │
    ├─► Check CPU/RAM requests       ├─► Check tag spelling           ├─► Run `kubectl logs --previous`
    ├─► Check Node Taints & Labels   ├─► Check imagePullSecrets       ├─► Exit 137? -> Increase RAM
@@ -1283,11 +1351,12 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 
 ---
 
-## 📋 14. Master Quick Reference Action Matrix
+## 📋 15. Master Quick Reference Action Matrix
 
 | When Pod Status Displays... | Immediate Primary Suspect | Exact Diagnostic & Recovery Command |
 | :--- | :--- | :--- |
 | **`Pending`** | CPU/RAM exhaustion, Taints, unbound PVC | `kubectl describe pod <pod>` |
+| **`SchedulingGated`** | External autoscaler (Karpenter/DRA) gating | `kubectl get pod <pod> -o yaml \| grep schedulingGates` |
 | **`Forbidden: exceeded quota`** | Namespace ResourceQuota full | `kubectl describe resourcequota -n <ns>` |
 | **`CreatePodSandboxError`** | CNI plugin error or IP exhaustion | `kubectl logs -n kube-system -l k8s-app=aws-node` |
 | **`ImagePullBackOff`** | Image tag typo, missing Secret, or Rate Limit | `kubectl get secrets` & verify repository |
@@ -1295,6 +1364,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 | **`CreateContainerConfigError`** | Referenced ConfigMap or Secret missing | `kubectl get configmap,secret -n <ns>` |
 | **`CrashLoopBackOff`** | Application crash on boot | `kubectl logs <pod> --previous` |
 | **`OOMKilled` (Exit 137)** | Container exceeded memory limit | Increase `resources.limits.memory` |
+| **`ContainerStatusUnknown`** | Host OOM on containerd / socket hang | `sudo systemctl restart containerd kubelet` |
 | **`Unhealthy` (Liveness)** | App deadlock or probe timeout | Increase `initialDelaySeconds` & timeout |
 | **`ReadinessProbeFailed`** | Backend dependencies down (DB/Redis) | Check downstream service connectivity |
 | **`ContainerCreating` (Stuck)** | Cloud volume attachment lock | Check PVC status & cloud disk console |
