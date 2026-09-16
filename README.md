@@ -1,7 +1,7 @@
 # 🚀 The Master Kubernetes Pod Statuses, Errors & Exit Codes Encyclopedia
 
 > **The Definitive, 100% Complete Troubleshooting Encyclopedia for Kubernetes (v1.20 - v1.31+)**  
-> Covering every single Kubernetes Pod Phase, Container State, Waiting/Terminated Reason, Scheduling Gate, Admission Webhook Rejection, ResourceQuota Constraint, In-Place Resize State, CNI/DNS Network Glitch, Storage/CSI Error, Probe Failure, Lifecycle Hook Error, Kernel Signal, Workload Controller Deadlock (StatefulSets/Deployments), Autoscaler Failure (HPA/KEDA/Cluster Autoscaler), Disruption Target, and Container Exit Code with **Real-World Scenarios**, **Deep Root Causes**, **Exact Diagnostic Commands**, and **Step-by-Step Fixes**.
+> Covering every single Kubernetes Pod Phase, Container State, Waiting/Terminated Reason, Scheduling Gate, Admission Webhook Rejection, ResourceQuota Constraint, In-Place Resize State, CNI/DNS Network Glitch, Storage/CSI Error, Probe Failure, Lifecycle Hook Error, Kernel Signal, Workload Controller Deadlock (StatefulSets/Deployments), Autoscaler Failure (HPA/KEDA/Cluster Autoscaler), CronJob/DaemonSet Failure, Ingress/Gateway API Glitch, TLS/Certificate Expiry, Windows Container Error, Disruption Target, and Container Exit Code with **Real-World Scenarios**, **Deep Root Causes**, **Exact Diagnostic Commands**, and **Step-by-Step Fixes**.
 
 ---
 
@@ -107,9 +107,16 @@
   - [13.4 `HPAUnableToComputeMetrics` / `ScalingLimited`](#134-hpaunabletocomputemetrics--scalinglimited)
   - [13.5 `KEDATriggerError` (External Event Source Down)](#135-kedatriggererror-external-event-source-down)
   - [13.6 `ClusterAutoscalerScaleUpFailed` (Cloud Quota Reached)](#136-clusterautoscalerscaleupfailed-cloud-quota-reached)
-- [🔢 14. Master Container Exit Codes & OS Signals Table](#-14-master-container-exit-codes--os-signals-table)
-- [🗺️ 15. The Ultimate 60-Second Diagnostic Decision Tree](#️-15-the-ultimate-60-second-diagnostic-decision-tree)
-- [📋 16. Master Quick Reference Action Matrix](#-16-master-quick-reference-action-matrix)
+- [🛡️ 14. Specialized Workload & Infrastructure Failures](#️-14-specialized-workload--infrastructure-failures)
+  - [14.1 `CronJobMissedSchedule` / `CannotDetermineTimeZone`](#141-cronjobmissedschedule--cannotdeterminetimezone)
+  - [14.2 `DaemonSetRolloutBlocked` (Node Taints / Master Node Exclusion)](#142-daemonsetrolloutblocked-node-taints--master-node-exclusion)
+  - [14.3 `GatewayAPI / Ingress 502 / 504 Bad Gateway`](#143-gatewayapi--ingress-502--504-bad-gateway)
+  - [14.4 `x509: CertificateExpired` / `Certificate Signed by Unknown Authority`](#144-x509-certificateexpired--certificate-signed-by-unknown-authority)
+  - [14.5 `IPv6DualStackAllocationFailed`](#145-ipv6dualstackallocationfailed)
+  - [14.6 `WindowsNodeContainerFailed` (HNS Network & Isolation Mismatch)](#146-windowsnodecontainerfailed-hns-network--isolation-mismatch)
+- [🔢 15. Master Container Exit Codes & OS Signals Table](#-15-master-container-exit-codes--os-signals-table)
+- [🗺️ 16. The Ultimate 60-Second Diagnostic Decision Tree](#️-16-the-ultimate-60-second-diagnostic-decision-tree)
+- [📋 17. Master Quick Reference Action Matrix](#-17-master-quick-reference-action-matrix)
 
 ---
 
@@ -1371,7 +1378,51 @@ kubectl get pvc,pv,sc -A
 
 ---
 
-## 🔢 14. Master Container Exit Codes & OS Signals Table
+## 🛡️ 14. Specialized Workload & Infrastructure Failures
+
+---
+
+### 14.1 `CronJobMissedSchedule` / `CannotDetermineTimeZone`
+* **📖 What It Means:** A CronJob failed to trigger at its scheduled time because the previous job execution took too long (with `concurrencyPolicy: Forbid` or `Replace`), or timezone parsing failed.
+* 🎭 **Real-World Scenario:** A report generation CronJob runs every hour with `concurrencyPolicy: Forbid`. A heavy query causes the 2:00 AM job to run for 80 minutes. The 3:00 AM job execution is skipped and marked `MissedSchedule`.
+* 🛠️ **Step-by-Step Fix:** Set `startingDeadlineSeconds: 300` on the CronJob spec or optimize the underlying script.
+
+---
+
+### 14.2 `DaemonSetRolloutBlocked` (Node Taints / Master Node Exclusion)
+* **📖 What It Means:** A DaemonSet (e.g. FluentBit, Datadog, Calico node agent) is not running on new worker nodes or control-plane nodes because it lacks the necessary node tolerations.
+* 🛠️ **Step-by-Step Fix:** Add tolerations for `node-role.kubernetes.io/control-plane:NoSchedule` and `CriticalAddonsOnly`.
+
+---
+
+### 14.3 `GatewayAPI / Ingress 502 / 504 Bad Gateway`
+* **📖 What It Means:** The Ingress controller (Nginx, Traefik) or Gateway API HTTPRoute accepted the external request, but the target Pod IP timed out (`504`) or immediately refused connection (`502`).
+* 🎭 **Real-World Scenario:** An Nginx Ingress route targets an Express app on port 3000. In the Kubernetes Service YAML, `targetPort` was set to 8080 by mistake. Ingress returns `502 Bad Gateway`.
+* 🛠️ **Step-by-Step Fix:** Verify that the Service `spec.ports[*].targetPort` matches the container's actual listening port.
+
+---
+
+### 14.4 `x509: CertificateExpired` / `Certificate Signed by Unknown Authority`
+* **📖 What It Means:** The TLS certificates used by Kubelet, API Server admission webhooks, or Cert-Manager expired or have an invalid CA root certificate bundle.
+* 🎭 **Real-World Scenario:** After 1 year of cluster operation, the Kubeadm client certificate `/etc/kubernetes/pki/apiserver.crt` expires. `kubectl` commands and pod creations fail with `x509: certificate has expired`.
+* 🛠️ **Step-by-Step Fix:** Renew Kubeadm certs: `sudo kubeadm certs renew all` and restart control-plane static pods.
+
+---
+
+### 14.5 `IPv6DualStackAllocationFailed`
+* **📖 What It Means:** In an IPv4/IPv6 Dual-Stack cluster, the CNI failed to allocate both IPv4 and IPv6 IP addresses to the Pod sandbox.
+* 🛠️ **Step-by-Step Fix:** Verify node dual-stack CIDR assignment with `kubectl get node <name> -o yaml | grep -A 4 podCIDRs`.
+
+---
+
+### 14.6 `WindowsNodeContainerFailed` (HNS Network & Isolation Mismatch)
+* **📖 What It Means:** On Windows Server worker nodes, the Windows Host Networking Service (HNS) failed to initialize, or the container OS build version does not match the host Windows OS build version.
+* 🎭 **Real-World Scenario:** You deploy a Windows container built with Windows Server 2022 image (`ltsc2022`) onto a node running Windows Server 2019 (`ltsc2019`). Windows process isolation fails.
+* 🛠️ **Step-by-Step Fix:** Match Windows container base image OS version with the host node OS build or use Hyper-V isolation (`isolation: hyperv`).
+
+---
+
+## 🔢 15. Master Container Exit Codes & OS Signals Table
 
 When inspecting `kubectl describe pod <name>`, inspect the **Last State** section to find the **Exit Code**.
 
@@ -1395,7 +1446,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 
 ---
 
-## 🗺️ 15. The Ultimate 60-Second Diagnostic Decision Tree
+## 🗺️ 16. The Ultimate 60-Second Diagnostic Decision Tree
 
 ```
                                 [ Pod Is Not Healthy ]
@@ -1429,7 +1480,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 
 ---
 
-## 📋 16. Master Quick Reference Action Matrix
+## 📋 17. Master Quick Reference Action Matrix
 
 | When Pod Status Displays... | Immediate Primary Suspect | Exact Diagnostic & Recovery Command |
 | :--- | :--- | :--- |
@@ -1451,6 +1502,7 @@ When inspecting `kubectl describe pod <name>`, inspect the **Last State** sectio
 | **`CoreDNS CrashLoopBackOff`** | DNS forwarding loop in `/etc/resolv.conf` | Fix nameservers in host `/etc/resolv.conf` |
 | **`ProgressDeadlineExceeded`** | Deployment rollout stuck past 10 mins | `kubectl rollout undo deployment/<name>` |
 | **`PDB Violation`** | Eviction blocked by PodDisruptionBudget | Check healthy replicas before draining |
+| **`x509: CertificateExpired`** | Kubeadm or Webhook TLS expired | `sudo kubeadm certs renew all` |
 
 ---
 *Created with ❤️ for Kubernetes developers, SREs, platform engineers, and DevOps professionals.*
